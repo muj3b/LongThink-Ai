@@ -2,257 +2,1193 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>MJThinking Dashboard</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>MJThinking Control Center</title>
     <style>
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        margin: 0;
-        background: #0f172a;
-        color: #e2e8f0;
+      :root {
+        color-scheme: dark;
+        --bg: radial-gradient(120% 120% at 10% 20%, #1f3b68 0%, #050a18 55%, #02040b 100%);
+        --panel: rgba(8, 13, 25, 0.8);
+        --panel-border: rgba(56, 189, 248, 0.12);
+        --primary: #e2e8f0;
+        --secondary: #94a3b8;
+        --accent: #38bdf8;
+        --accent-soft: rgba(56, 189, 248, 0.2);
+        --success: #22c55e;
+        --danger: #ef4444;
       }
-      header {
-        padding: 1.5rem 2rem;
-        background: #1e293b;
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: var(--bg);
+        color: var(--primary);
+        min-height: 100vh;
         display: flex;
+        flex-direction: column;
+      }
+
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        backdrop-filter: blur(16px);
+        background: rgba(5, 11, 22, 0.82);
+        border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+        padding: 1.1rem 2.2rem;
+        display: flex;
+        gap: 1.5rem;
         align-items: center;
         justify-content: space-between;
       }
-      main {
-        padding: 2rem;
-        max-width: 960px;
-        margin: 0 auto;
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
       }
-      h1 {
+
+      .brand-logo {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        background: linear-gradient(140deg, #38bdf8, #2563eb);
+        color: #020617;
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        font-size: 1.05rem;
+        box-shadow: 0 12px 28px rgba(56, 189, 248, 0.3);
+      }
+
+      .brand h1 {
         margin: 0;
-        font-size: 1.6rem;
+        font-size: 1.35rem;
+        letter-spacing: 0.01em;
       }
+
+      .brand p {
+        margin: 0.1rem 0 0;
+        font-size: 0.78rem;
+        color: var(--secondary);
+      }
+
+      .header-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: center;
+      }
+
+      label.inline {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        font-size: 0.8rem;
+        color: var(--secondary);
+      }
+
+      input,
+      textarea,
       select,
       button {
-        background: #334155;
-        color: #e2e8f0;
-        border: 1px solid #475569;
-        border-radius: 6px;
+        font-family: inherit;
+      }
+
+      input[type='text'],
+      input[type='url'],
+      textarea,
+      select {
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        color: var(--primary);
         padding: 0.5rem 0.75rem;
-        font-size: 1rem;
+        border-radius: 9px;
+        transition: border 0.2s ease, box-shadow 0.2s ease;
       }
-      button:hover,
-      select:hover {
-        border-color: #38bdf8;
+
+      input[type='text']:focus,
+      input[type='url']:focus,
+      textarea:focus,
+      select:focus {
+        outline: none;
+        border-color: rgba(56, 189, 248, 0.7);
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
       }
-      .panel {
-        background: rgba(15, 23, 42, 0.85);
-        border: 1px solid #1f2937;
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
-        box-shadow: 0 10px 40px rgba(15, 23, 42, 0.4);
+
+      button {
+        border: none;
+        border-radius: 10px;
+        padding: 0.55rem 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.15s ease, box-shadow 0.2s ease;
+        color: #0f172a;
+        background: linear-gradient(135deg, rgba(56, 189, 248, 0.9), rgba(37, 99, 235, 0.9));
       }
-      .grid {
+
+      button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 30px rgba(56, 189, 248, 0.28);
+      }
+
+      button.secondary {
+        background: rgba(30, 41, 59, 0.85);
+        color: var(--primary);
+        border: 1px solid rgba(56, 189, 248, 0.22);
+      }
+
+      button.ghost {
+        background: transparent;
+        color: var(--secondary);
+        border: 1px solid rgba(148, 163, 184, 0.22);
+      }
+
+      button.danger {
+        background: linear-gradient(135deg, rgba(248, 113, 113, 0.92), rgba(239, 68, 68, 0.9));
+        color: #fee2e2;
+        box-shadow: 0 12px 26px rgba(248, 113, 113, 0.25);
+      }
+
+      main {
+        flex: 1;
+        padding: 2.3rem 2.3rem 3rem;
         display: grid;
-        gap: 1rem;
+        gap: 1.6rem;
+        grid-template-columns: 340px minmax(0, 1fr);
       }
-      .grid.two {
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+
+      @media (max-width: 1100px) {
+        main {
+          grid-template-columns: 1fr;
+        }
       }
-      .metric {
+
+      .column {
         display: flex;
         flex-direction: column;
-        gap: 0.25rem;
-        background: #111827;
-        padding: 1rem;
-        border-radius: 8px;
-        border: 1px solid #1f2937;
+        gap: 1.4rem;
       }
-      .metric span:first-child {
-        font-size: 0.85rem;
-        color: #94a3b8;
+
+      .panel {
+        background: var(--panel);
+        border-radius: 18px;
+        padding: 1.45rem 1.55rem;
+        border: 1px solid var(--panel-border);
+        box-shadow: 0 18px 45px rgba(2, 6, 15, 0.55);
+        position: relative;
+        overflow: hidden;
       }
-      .metric span:last-child {
-        font-size: 1.2rem;
+
+      .panel::after {
+        content: '';
+        position: absolute;
+        inset: 1px;
+        border-radius: 17px;
+        border: 1px solid rgba(56, 189, 248, 0.05);
+        pointer-events: none;
+      }
+
+      .panel h2 {
+        margin: 0 0 1rem;
+        font-size: 1.05rem;
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+      }
+
+      .panel h2 span {
+        font-size: 0.8rem;
+        font-weight: 500;
+        color: var(--secondary);
+      }
+
+      .session-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+        max-height: 420px;
+        overflow-y: auto;
+      }
+
+      .session-card {
+        padding: 0.85rem 1rem;
+        border-radius: 14px;
+        background: rgba(12, 20, 36, 0.6);
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: transform 0.15s ease, border 0.2s ease, background 0.2s ease;
+        display: grid;
+        gap: 0.35rem;
+      }
+
+      .session-card:hover {
+        transform: translateY(-1px);
+        border-color: rgba(56, 189, 248, 0.42);
+        background: rgba(15, 23, 42, 0.78);
+      }
+
+      .session-card.active {
+        border-color: rgba(56, 189, 248, 0.85);
+        box-shadow: 0 14px 32px rgba(56, 189, 248, 0.22);
+      }
+
+      .session-card .meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.78rem;
+        color: var(--secondary);
+      }
+
+      .session-card .question {
+        font-size: 0.88rem;
+        color: var(--primary);
+        line-height: 1.4;
+      }
+
+      .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 0.9rem;
+        margin-bottom: 1.1rem;
+      }
+
+      .metric-card {
+        background: rgba(15, 24, 44, 0.58);
+        border-radius: 15px;
+        padding: 0.85rem;
+        border: 1px solid rgba(56, 189, 248, 0.16);
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+      }
+
+      .metric-card span.label {
+        font-size: 0.75rem;
+        letter-spacing: 0.08em;
+        color: var(--secondary);
+        text-transform: uppercase;
+      }
+
+      .metric-card span.value {
+        font-size: 1.08rem;
         font-weight: 600;
       }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 1rem;
-        font-size: 0.95rem;
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        border-radius: 999px;
+        padding: 0.22rem 0.6rem;
+        font-size: 0.72rem;
+        background: rgba(148, 163, 184, 0.18);
+        color: var(--secondary);
       }
-      th,
-      td {
-        text-align: left;
-        padding: 0.65rem 0.5rem;
-        border-bottom: 1px solid #1f2937;
+
+      .pill.success {
+        background: rgba(34, 197, 94, 0.18);
+        color: var(--success);
       }
-      th {
-        color: #94a3b8;
+
+      .pill.danger {
+        background: rgba(239, 68, 68, 0.18);
+        color: var(--danger);
+      }
+
+      .rounds-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 0.9rem;
+      }
+
+      .round-card {
+        background: rgba(12, 20, 38, 0.66);
+        border: 1px solid rgba(56, 189, 248, 0.12);
+        border-radius: 15px;
+        padding: 0.85rem;
+        display: grid;
+        gap: 0.45rem;
+      }
+
+      .round-card header {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.8rem;
+        color: var(--secondary);
+      }
+
+      .round-card .answer {
+        font-size: 0.85rem;
         font-weight: 500;
-      }
-      tbody tr:nth-child(odd) {
-        background: #111827;
-      }
-      pre {
-        background: #0f172a;
-        border: 1px solid #1f2937;
-        padding: 1rem;
+        color: var(--primary);
+        background: rgba(8, 15, 28, 0.7);
         border-radius: 8px;
-        overflow-x: auto;
-        max-height: 200px;
+        padding: 0.4rem 0.5rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
+
+      .event-log {
+        font-family: 'Fira Code', 'JetBrains Mono', 'SFMono-Regular', monospace;
+        font-size: 0.78rem;
+        background: rgba(7, 12, 24, 0.76);
+        border-radius: 14px;
+        border: 1px solid rgba(56, 189, 248, 0.1);
+        padding: 0.9rem;
+        max-height: 260px;
+        overflow-y: auto;
+      }
+
+      .event-log pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      .queue-item {
+        background: rgba(12, 20, 36, 0.6);
+        border-radius: 14px;
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        padding: 0.85rem;
+        display: grid;
+        gap: 0.4rem;
+      }
+
+      .queue-item footer {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.72rem;
+        color: var(--secondary);
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 0.75rem;
+      }
+
+      textarea.mono {
+        font-family: 'JetBrains Mono', 'SFMono-Regular', monospace;
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        align-items: center;
+      }
+
+      .toast-container {
+        position: fixed;
+        top: 1.25rem;
+        right: 1.4rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+        z-index: 999;
+      }
+
+      .toast {
+        padding: 0.6rem 0.95rem;
+        border-radius: 12px;
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        background: rgba(10, 18, 32, 0.85);
+        font-size: 0.82rem;
+        min-width: 220px;
+        animation: fadein 0.22s ease, fadeout 0.32s ease 4.4s forwards;
+      }
+
+      .toast.success {
+        border-color: rgba(34, 197, 94, 0.38);
+        color: var(--success);
+      }
+
+      .toast.error {
+        border-color: rgba(239, 68, 68, 0.45);
+        color: var(--danger);
+      }
+
       footer {
         text-align: center;
-        padding: 1rem 0;
-        color: #475569;
+        padding: 1rem 0 1.4rem;
+        color: var(--secondary);
+        font-size: 0.78rem;
+      }
+
+      @keyframes fadein {
+        from {
+          opacity: 0;
+          transform: translateX(60px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      @keyframes fadeout {
+        to {
+          opacity: 0;
+          transform: translateX(40px);
+        }
+      }
+
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: rgba(148, 163, 184, 0.24);
+        border-radius: 99px;
       }
     </style>
   </head>
   <body>
+    <div class="toast-container" id="toastContainer"></div>
     <header>
-      <h1>MJThinking Session Monitor</h1>
-      <div>
-        <select id="sessionSelect"></select>
-        <button id="refreshBtn">Refresh</button>
+      <div class="brand">
+        <div class="brand-logo">MJ</div>
+        <div>
+          <h1>MJThinking Control Center</h1>
+          <p>Launch, monitor, queue, resume, or stop long-form reasoning runs.</p>
+        </div>
+      </div>
+      <div class="header-controls">
+        <label class="inline">
+          API
+          <input type="url" id="apiBase" placeholder="http://127.0.0.1:8000" spellcheck="false" />
+        </label>
+        <label class="inline">
+          <input type="checkbox" id="autoRefreshToggle" checked /> auto-refresh
+        </label>
+        <button class="secondary" id="refreshAllBtn">Refresh now</button>
       </div>
     </header>
     <main>
-      <section class="panel">
-        <h2>Overview</h2>
-        <div class="grid two" id="overviewMetrics"></div>
+      <section class="column">
+        <article class="panel">
+          <h2>Sessions <span id="sessionCount"></span></h2>
+          <div id="sessionList" class="session-list"></div>
+        </article>
+        <article class="panel">
+          <h2>Queue <span id="queueCount"></span></h2>
+          <div id="queueList" class="column" style="gap:0.6rem;"></div>
+        </article>
+        <article class="panel">
+          <h2>Launch / Queue</h2>
+          <form id="launchForm" class="column" style="gap:0.85rem;">
+            <label>
+              <span style="display:block; margin-bottom:0.3rem; color:var(--secondary); font-size:0.82rem;">Prompt</span>
+              <textarea id="promptInput" rows="4" placeholder="Prove every prime greater than 3 is congruent to ±1 mod 6"></textarea>
+            </label>
+            <div class="form-grid">
+              <label>
+                <span style="display:block; margin-bottom:0.3rem; color:var(--secondary); font-size:0.75rem;">Prompt style</span>
+                <select id="styleSelect"></select>
+              </label>
+              <label>
+                <span style="display:block; margin-bottom:0.3rem; color:var(--secondary); font-size:0.75rem;">Mode</span>
+                <input type="text" id="modeInput" placeholder="HYBRID / BON / TOT" />
+              </label>
+            </div>
+            <div class="form-grid">
+              <label>
+                <span style="display:block; margin-bottom:0.3rem; color:var(--secondary); font-size:0.75rem;">Session ID (optional)</span>
+                <input type="text" id="sessionIdInput" placeholder="Leave empty to auto-generate" />
+              </label>
+              <label>
+                <span style="display:block; margin-bottom:0.3rem; color:var(--secondary); font-size:0.75rem;">Env overrides (KEY=VALUE per line)</span>
+                <textarea id="envInput" rows="3" class="mono" placeholder="MODEL=deepseek-r1:7b
+TIME_BUDGET=1200"></textarea>
+              </label>
+            </div>
+            <div class="toolbar">
+              <button type="submit" data-action="launch">Launch</button>
+              <button type="submit" data-action="queue" class="secondary">Queue</button>
+              <button type="button" id="clearFormBtn" class="ghost">Clear</button>
+            </div>
+          </form>
+        </article>
+        <article class="panel">
+          <h2>Command palette</h2>
+          <textarea id="commandInput" class="mono" rows="3" placeholder="/launch &quot;Explain Lie groups&quot; --style=english"></textarea>
+          <div class="toolbar" style="justify-content:space-between; margin-top:0.6rem;">
+            <div style="font-size:0.75rem; color:var(--secondary); display:flex; gap:0.45rem; flex-wrap:wrap;">
+              <span>Try:</span>
+              <code>/resume mjthinking_*</code>
+              <code>/pause current</code>
+              <code>/cleanup --days=7 --dry-run</code>
+            </div>
+            <button class="secondary" id="runCommandBtn">Run</button>
+          </div>
+        </article>
       </section>
-      <section class="panel">
-        <h2>Final Answer</h2>
-        <pre id="finalAnswer">Select a session…</pre>
-      </section>
-      <section class="panel">
-        <h2>Rounds</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Confidence</th>
-              <th>Validators</th>
-              <th>Referee</th>
-              <th>Majority</th>
-            </tr>
-          </thead>
-          <tbody id="roundTable"></tbody>
-        </table>
-      </section>
-      <section class="panel">
-        <h2>Recent Events</h2>
-        <pre id="eventLog"></pre>
+      <section class="column">
+        <article class="panel">
+          <h2 id="detailsTitle">Session</h2>
+          <div class="toolbar" style="margin-bottom:0.8rem;">
+            <button class="secondary" id="resumeBtn">Resume</button>
+            <button class="secondary" data-command="PAUSE" id="pauseBtn">Pause</button>
+            <button class="secondary" data-command="RESUME" id="continueBtn">Continue</button>
+            <button class="danger" data-command="STOP" id="stopBtn">Stop</button>
+            <button class="ghost" id="copySummaryBtn">Copy summary</button>
+          </div>
+          <div id="metricsGrid" class="metrics-grid"></div>
+          <div id="roundsGrid" class="rounds-grid" style="margin-bottom:1.1rem;"></div>
+          <div id="artifactGrid" class="column" style="gap:0.8rem;"></div>
+        </article>
+        <article class="panel">
+          <h2>Event log</h2>
+          <div class="event-log" id="eventLog"><pre>No session selected.</pre></div>
+        </article>
+        <article class="panel">
+          <h2>Cleanup</h2>
+          <form id="cleanupForm" class="column" style="gap:0.8rem;">
+            <div class="form-grid">
+              <label>
+                <span style="display:block; margin-bottom:0.3rem; color:var(--secondary); font-size:0.75rem;">Delete sessions older than N days</span>
+                <input type="text" id="cleanupDays" placeholder="e.g. 7" />
+              </label>
+              <label>
+                <span style="display:block; margin-bottom:0.3rem; color:var(--secondary); font-size:0.75rem;">Keep newest N sessions</span>
+                <input type="text" id="cleanupKeep" placeholder="e.g. 20" />
+              </label>
+            </div>
+            <textarea id="cleanupSessions" rows="3" class="mono" placeholder="Explicit session IDs (optional)"></textarea>
+            <div class="toolbar">
+              <label class="inline">
+                <input type="checkbox" id="cleanupDryRun" /> dry run
+              </label>
+              <label class="inline">
+                <input type="checkbox" id="cleanupForce" /> force
+              </label>
+              <button type="submit" class="secondary">Run cleanup</button>
+            </div>
+          </form>
+        </article>
       </section>
     </main>
-    <footer>
-      <small>Powered by mjthinking_api.py</small>
-    </footer>
+    <footer>MJThinking • Local deep reasoning orchestrator</footer>
     <script>
-      const sessionSelect = document.getElementById('sessionSelect');
-      const overviewMetrics = document.getElementById('overviewMetrics');
-      const finalAnswer = document.getElementById('finalAnswer');
-      const roundTable = document.getElementById('roundTable');
-      const eventLog = document.getElementById('eventLog');
-      const refreshBtn = document.getElementById('refreshBtn');
+      const qs = (sel, parent = document) => parent.querySelector(sel);
+      const qsa = (sel, parent = document) => Array.from(parent.querySelectorAll(sel));
 
-      async function fetchJSON(url) {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(await res.text());
-        return res.json();
+      const state = {
+        baseUrl: localStorage.getItem('mjthinking.apiBase') || 'http://127.0.0.1:8000',
+        sessions: [],
+        queue: [],
+        styles: [],
+        selected: null,
+        details: null,
+        autoRefresh: true,
+        timer: null,
+      };
+
+      const toastContainer = qs('#toastContainer');
+      const apiBaseInput = qs('#apiBase');
+      const autoRefreshToggle = qs('#autoRefreshToggle');
+      const sessionListEl = qs('#sessionList');
+      const sessionCountEl = qs('#sessionCount');
+      const queueListEl = qs('#queueList');
+      const queueCountEl = qs('#queueCount');
+      const metricsGridEl = qs('#metricsGrid');
+      const roundsGridEl = qs('#roundsGrid');
+      const artifactGridEl = qs('#artifactGrid');
+      const eventLogEl = qs('#eventLog');
+      const detailsTitleEl = qs('#detailsTitle');
+
+      const promptInput = qs('#promptInput');
+      const styleSelect = qs('#styleSelect');
+      const modeInput = qs('#modeInput');
+      const envInput = qs('#envInput');
+      const sessionIdInput = qs('#sessionIdInput');
+      const commandInput = qs('#commandInput');
+
+      apiBaseInput.value = state.baseUrl;
+
+      function toast(message, type = 'success') {
+        const el = document.createElement('div');
+        el.className = `toast ${type}`;
+        el.textContent = message;
+        toastContainer.appendChild(el);
+        setTimeout(() => el.remove(), 4500);
       }
 
-      function renderMetrics(manifest) {
-        const completion = manifest?.completion || {};
+      function setBaseUrl(url) {
+        const normalized = (url || '').replace(/\/$/, '');
+        if (!normalized) return;
+        state.baseUrl = normalized;
+        localStorage.setItem('mjthinking.apiBase', normalized);
+        toast(`API set to ${normalized}`);
+        refreshAll();
+      }
+
+      async function api(path, options = {}) {
+        const url = `${state.baseUrl}${path}`;
+        const opts = { headers: { 'Content-Type': 'application/json' }, ...options };
+        try {
+          const res = await fetch(url, opts);
+          if (!res.ok) throw new Error((await res.text()) || res.statusText);
+          const text = await res.text();
+          return text ? JSON.parse(text) : null;
+        } catch (err) {
+          toast(err.message || 'request failed', 'error');
+          throw err;
+        }
+      }
+
+      function parseEnv(text) {
+        const env = {};
+        text
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .forEach((line) => {
+            const [key, ...rest] = line.split('=');
+            if (key && rest.length) env[key.trim()] = rest.join('=').trim();
+          });
+        return Object.keys(env).length ? env : undefined;
+      }
+
+      function renderStyles() {
+        const current = styleSelect.value;
+        styleSelect.innerHTML = '';
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = 'default';
+        styleSelect.appendChild(opt);
+        state.styles.forEach((style) => {
+          const el = document.createElement('option');
+          el.value = style;
+          el.textContent = style;
+          styleSelect.appendChild(el);
+        });
+        if (state.styles.includes(current)) {
+          styleSelect.value = current;
+        }
+      }
+
+      function formatDuration(seconds) {
+        if (seconds === undefined || seconds === null || seconds < 0) return '—';
+        seconds = Math.round(seconds);
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        const h = Math.floor(m / 60);
+        const mm = m % 60;
+        const parts = [];
+        if (h) parts.push(`${h}h`);
+        if (mm) parts.push(`${mm}m`);
+        parts.push(`${s}s`);
+        return parts.join(' ');
+      }
+
+      function renderSessions() {
+        sessionListEl.innerHTML = '';
+        sessionCountEl.textContent = state.sessions.length ? `• ${state.sessions.length}` : '';
+        if (!state.sessions.length) {
+          const empty = document.createElement('div');
+          empty.textContent = 'No sessions yet.';
+          empty.style.color = 'var(--secondary)';
+          empty.style.fontSize = '0.8rem';
+          sessionListEl.appendChild(empty);
+          return;
+        }
+        state.sessions.forEach((session) => {
+          const card = document.createElement('div');
+          card.className = 'session-card';
+          if (session.session_id === state.selected) card.classList.add('active');
+          const status = session.status || 'in_progress';
+          const pill = `<span class="pill ${status === 'success' ? 'success' : status === 'stopped' ? 'danger' : ''}">${status.replace('_', ' ')}</span>`;
+          card.innerHTML = `
+            <div class="meta">
+              <strong>${session.session_id}</strong>
+              ${pill}
+            </div>
+            <div class="question">${session.question || '(prompt hidden)'}</div>
+            <div class="meta">
+              <span>rounds: ${session.rounds ?? '—'}</span>
+              <span>${formatDuration(session.elapsed_seconds)}</span>
+            </div>
+          `;
+          card.addEventListener('click', () => selectSession(session.session_id));
+          sessionListEl.appendChild(card);
+        });
+      }
+
+      function renderQueue() {
+        queueListEl.innerHTML = '';
+        queueCountEl.textContent = state.queue.length ? `• ${state.queue.length}` : '';
+        if (!state.queue.length) {
+          const empty = document.createElement('div');
+          empty.textContent = 'Queue empty';
+          empty.style.color = 'var(--secondary)';
+          empty.style.fontSize = '0.8rem';
+          queueListEl.appendChild(empty);
+          return;
+        }
+        state.queue.forEach((job) => {
+          const card = document.createElement('div');
+          card.className = 'queue-item';
+          const prompt = (job.prompt || '').slice(0, 200) + ((job.prompt || '').length > 200 ? '…' : '');
+          card.innerHTML = `
+            <div>${prompt || '(no prompt)'}</div>
+            <div class="toolbar" style="justify-content:space-between;">
+              <div style="display:flex; gap:0.4rem;">
+                ${job.style ? `<span class="pill">style: ${job.style}</span>` : ''}
+                ${job.mode ? `<span class="pill">mode: ${job.mode}</span>` : ''}
+              </div>
+              <button class="ghost" data-job="${job.job_id}">remove</button>
+            </div>
+            <footer>
+              <span>${job.job_id}</span>
+              <span>${job.enqueued_at || ''}</span>
+            </footer>
+          `;
+          card.querySelector('button').addEventListener('click', () => removeQueue(job.job_id));
+          queueListEl.appendChild(card);
+        });
+      }
+
+      function renderDetails() {
+        const data = state.details;
+        metricsGridEl.innerHTML = '';
+        roundsGridEl.innerHTML = '';
+        artifactGridEl.innerHTML = '';
+        eventLogEl.innerHTML = '<pre>No session selected.</pre>';
+        if (!data) {
+          detailsTitleEl.textContent = 'Session';
+          return;
+        }
+        detailsTitleEl.textContent = data.session_id;
+        const manifest = data.manifest || {};
+        const completion = manifest.completion || {};
         const metrics = [
-          { label: 'Status', value: completion.status || 'in_progress' },
-          { label: 'Rounds', value: completion.rounds ?? '--' },
-          { label: 'Elapsed (s)', value: completion.elapsed_seconds ?? '--' },
-          { label: 'Confidence Target', value: manifest?.parameters?.TARGET_CONF ?? '--' },
-          { label: 'Chains', value: manifest?.parameters?.CHAINS ?? '--' },
-          { label: 'Prompt Style', value: manifest?.parameters?.PROMPT_STYLE ?? 'default' }
+          ['status', completion.status || 'in_progress'],
+          ['rounds', completion.rounds ?? '—'],
+          ['elapsed', formatDuration(completion.elapsed_seconds)],
+          ['chains', manifest.parameters?.CHAINS ?? '—'],
+          ['mode', manifest.parameters?.MODE ?? '—'],
+          ['prompt style', manifest.parameters?.PROMPT_STYLE ?? 'default'],
+          ['target conf', manifest.parameters?.TARGET_CONF ?? '—'],
+          ['auto extend', manifest.parameters?.AUTO_EXTEND_ROUNDS ?? '—'],
         ];
-        overviewMetrics.innerHTML = metrics
-          .map(
-            (m) => `
-            <div class="metric">
-              <span>${m.label}</span>
-              <span>${m.value}</span>
-            </div>`
-          )
-          .join('');
+        metrics.forEach(([label, value]) => {
+          const card = document.createElement('div');
+          card.className = 'metric-card';
+          card.innerHTML = `<span class="label">${label}</span><span class="value">${value}</span>`;
+          metricsGridEl.appendChild(card);
+        });
+        const rounds = Array.isArray(manifest.rounds) ? manifest.rounds : [];
+        if (!rounds.length) {
+          const empty = document.createElement('div');
+          empty.textContent = 'No rounds yet.';
+          empty.style.color = 'var(--secondary)';
+          empty.style.fontSize = '0.78rem';
+          roundsGridEl.appendChild(empty);
+        } else {
+          rounds.forEach((round) => {
+            const card = document.createElement('div');
+            card.className = 'round-card';
+            card.innerHTML = `
+              <header>
+                <span>round ${round.round}</span>
+                <span>${formatDuration(round.round_duration)}</span>
+              </header>
+              <div class="answer" title="${round.final_answer || ''}">${round.final_answer || '(pending)'}</div>
+              <div>
+                <span class="pill">conf ${round.confidence_percent ?? '—'}</span>
+                <span class="pill ${round.validators_pass === 'YES' ? 'success' : ''}">validators ${round.validators_pass || '—'}</span>
+                <span class="pill">ref ${round.referee_verdict || '—'}</span>
+              </div>
+            `;
+            roundsGridEl.appendChild(card);
+          });
+        }
+        const artifacts = [];
+        if (data.summary_md) artifacts.push(['summary (md)', data.summary_md]);
+        if (data.summary_json) artifacts.push(['summary (json)', JSON.stringify(data.summary_json, null, 2)]);
+        if (!artifacts.length) {
+          const empty = document.createElement('div');
+          empty.textContent = 'No artifacts yet.';
+          empty.style.color = 'var(--secondary)';
+          empty.style.fontSize = '0.78rem';
+          artifactGridEl.appendChild(empty);
+        } else {
+          artifacts.forEach(([label, content]) => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'metric-card';
+            wrapper.innerHTML = `<span class="label">${label}</span>`;
+            const textarea = document.createElement('textarea');
+            textarea.value = content;
+            textarea.readOnly = true;
+            textarea.rows = 6;
+            textarea.className = 'mono';
+            textarea.style.background = 'rgba(8, 15, 26, 0.75)';
+            textarea.style.color = 'var(--primary)';
+            textarea.style.border = '1px solid rgba(148, 163, 184, 0.16)';
+            textarea.style.borderRadius = '10px';
+            wrapper.appendChild(textarea);
+            artifactGridEl.appendChild(wrapper);
+          });
+        }
+        const events = Array.isArray(data.events) ? data.events : [];
+        if (!events.length) {
+          eventLogEl.innerHTML = '<pre>No events yet.</pre>';
+        } else {
+          const lines = events.map((evt) => JSON.stringify(evt, null, 2)).join('\n\n');
+          eventLogEl.innerHTML = `<pre>${lines}</pre>`;
+        }
       }
 
-      function renderRounds(rounds) {
-        if (!Array.isArray(rounds) || rounds.length === 0) {
-          roundTable.innerHTML = '<tr><td colspan="5">No rounds recorded.</td></tr>';
-          return;
+      async function selectSession(sessionId) {
+        state.selected = sessionId;
+        renderSessions();
+        if (!sessionId) return;
+        try {
+          const details = await api(`/sessions/${sessionId}`);
+          state.details = details;
+          renderDetails();
+        } catch (error) {
+          console.error(error);
         }
-        roundTable.innerHTML = rounds
-          .map((r) => `
-            <tr>
-              <td>${r.round}</td>
-              <td>${r.confidence_percent ?? 'n/a'}</td>
-              <td>${r.validators_pass ?? 'n/a'}</td>
-              <td>${r.referee_verdict ?? 'n/a'}</td>
-              <td>${r.final_answer ?? ''}</td>
-            </tr>`)
-          .join('');
       }
 
-      function renderEvents(events) {
-        if (!Array.isArray(events) || events.length === 0) {
-          eventLog.textContent = 'No events yet.';
-          return;
+      async function removeQueue(jobId) {
+        try {
+          await api(`/queue/${jobId}`, { method: 'DELETE' });
+          toast(`Removed ${jobId}`);
+          loadQueue();
+        } catch (error) {
+          console.error(error);
         }
-        const lines = events.map((evt) => JSON.stringify(evt, null, 2)).join('\n\n');
-        eventLog.textContent = lines;
       }
 
       async function loadSessions() {
-        const sessions = await fetchJSON('/sessions');
-        sessionSelect.innerHTML = '';
-        sessions.forEach((s, idx) => {
-          const opt = document.createElement('option');
-          opt.value = s.session_id;
-          opt.textContent = `${s.session_id} (${s.status ?? 'in_progress'})`;
-          if (idx === 0) opt.selected = true;
-          sessionSelect.appendChild(opt);
+        try {
+          const sessions = await api('/sessions');
+          state.sessions = Array.isArray(sessions) ? sessions : [];
+          if (!state.selected && state.sessions.length) {
+            state.selected = state.sessions[0].session_id;
+          }
+          renderSessions();
+        } catch (error) {
+          console.error(error);
+        }
+      }
+
+      async function loadQueue() {
+        try {
+          const queue = await api('/queue');
+          state.queue = Array.isArray(queue) ? queue : [];
+          renderQueue();
+        } catch (error) {
+          console.error(error);
+        }
+      }
+
+      async function loadStyles() {
+        try {
+          const styles = await api('/prompts');
+          state.styles = Array.isArray(styles) ? styles : [];
+        } catch (error) {
+          state.styles = [];
+        }
+        renderStyles();
+      }
+
+      async function refreshAll() {
+        await Promise.all([loadSessions(), loadQueue(), loadStyles()]);
+        if (state.selected) await selectSession(state.selected);
+      }
+
+      function scheduleRefresh() {
+        if (state.timer) clearInterval(state.timer);
+        if (state.autoRefresh) {
+          state.timer = setInterval(refreshAll, 8000);
+        }
+      }
+
+      function clearForm() {
+        promptInput.value = '';
+        modeInput.value = '';
+        envInput.value = '';
+        sessionIdInput.value = '';
+      }
+
+      async function submitLaunch(event) {
+        event.preventDefault();
+        const action = event.submitter?.dataset.action || 'launch';
+        const prompt = promptInput.value.trim();
+        if (!prompt) {
+          toast('prompt required', 'error');
+          return;
+        }
+        const payload = {
+          prompt,
+          prompt_style: styleSelect.value || undefined,
+          mode: modeInput.value.trim() || undefined,
+          env: parseEnv(envInput.value),
+          session_id: sessionIdInput.value.trim() || undefined,
+        };
+        try {
+          if (action === 'queue') {
+            await api('/queue', { method: 'POST', body: JSON.stringify(payload) });
+            toast('queued');
+            loadQueue();
+          } else {
+            await api('/sessions', { method: 'POST', body: JSON.stringify({ ...payload, queue_only: false }) });
+            toast('session launched');
+            refreshAll();
+          }
+        } catch (error) {
+          console.error(error);
+        }
+      }
+
+      function tokenize(input) {
+        const tokens = [];
+        let current = '';
+        let quote = null;
+        for (const char of input) {
+          if (quote) {
+            if (char === quote) {
+              quote = null;
+              if (current) {
+                tokens.push(current);
+                current = '';
+              }
+            } else {
+              current += char;
+            }
+          } else if (char === '"' || char === "'") {
+            if (current) {
+              tokens.push(current);
+              current = '';
+            }
+            quote = char;
+          } else if (/\s/.test(char)) {
+            if (current) {
+              tokens.push(current);
+              current = '';
+            }
+          } else {
+            current += char;
+          }
+        }
+        if (current) tokens.push(current);
+        return tokens;
+      }
+
+      function parseCommand(input) {
+        const tokens = tokenize(input);
+        const command = tokens.shift()?.toLowerCase();
+        const args = [];
+        const opts = { env: [] };
+        while (tokens.length) {
+          const token = tokens.shift();
+          if (!token) continue;
+          if (token.startsWith('--')) {
+            const [key, valueRaw] = token.includes('=') ? token.slice(2).split(/=(.*)/, 2) : [token.slice(2), tokens.shift()];
+            if (!key) continue;
+            const keyLower = key.toLowerCase();
+            if (keyLower === 'env') {
+              if (valueRaw) opts.env.push(valueRaw);
+            } else {
+              opts[keyLower] = valueRaw === undefined ? true : valueRaw;
+            }
+          } else {
+            args.push(token);
+          }
+        }
+        return { command, args, opts };
+      }
+
+      function envFromOptions(optionEnv) {
+        if (!optionEnv || !optionEnv.length) return undefined;
+        const env = {};
+        optionEnv.forEach((entry) => {
+          const [key, ...rest] = entry.split('=');
+          if (key && rest.length) env[key.trim()] = rest.join('=').trim();
         });
-        if (sessions.length > 0) {
-          await loadSession(sessions[0].session_id);
-        } else {
-          finalAnswer.textContent = 'No sessions yet.';
-          roundTable.innerHTML = '';
-          eventLog.textContent = '';
+        return Object.keys(env).length ? env : undefined;
+      }
+
+      async function runCommand(raw) {
+        const input = raw.trim();
+        if (!input) return;
+        const { command, args, opts } = parseCommand(input);
+        if (!command) return;
+        try {
+          switch (command) {
+            case '/help':
+              toast('Commands: /launch /queue /resume /pause /continue /stop /cleanup /select');
+              break;
+            case '/launch': {
+              const prompt = args.join(' ');
+              if (!prompt) throw new Error('prompt required');
+              await api('/sessions', {
+                method: 'POST',
+                body: JSON.stringify({
+                  prompt,
+                  prompt_style: opts.style,
+                  mode: opts.mode,
+                  session_id: opts.session,
+                  env: envFromOptions(opts.env),
+                  queue_only: false,
+                }),
+              });
+              toast('launch dispatched');
+              refreshAll();
+              break;
+            }
+            case '/queue': {
+              const prompt = args.join(' ');
+              if (!prompt) throw new Error('prompt required');
+              await api('/queue', {
+                method: 'POST',
+                body: JSON.stringify({
+                  prompt,
+                  prompt_style: opts.style,
+                  mode: opts.mode,
+                  session_id: opts.session,
+                  env: envFromOptions(opts.env),
+                }),
+              });
+              toast('queued');
+              loadQueue();
+              break;
+            }
+            case '/resume': {
+              const sessionId = args[0] || opts.session || state.selected;
+              if (!sessionId) throw new Error('session required');
+              await api(`/sessions/${sessionId}/resume`, {
+                method: 'POST',
+                body: JSON.stringify({ env: envFromOptions(opts.env) }),
+              });
+              toast(`resume issued for ${sessionId}`);
+              break;
+            }
+            case '/pause':
+            case '/continue':
+            case '/stop': {
+              const sessionId = args[0] || opts.session || state.selected;
+              if (!sessionId) throw new Error('session required');
+              const map = { '/pause': 'PAUSE', '/continue': 'RESUME', '/stop': 'STOP' };
+              await api(`/sessions/${sessionId}/control`, {
+                method: 'POST',
+                body: JSON.stringify({ command: map[command] }),
+              });
+              toast(`${map[command]} queued for ${sessionId}`);
+              break;
+            }
+            case '/cleanup': {
+              const body = {
+                days: opts.days ? Number(opts.days) : undefined,
+                keep: opts.keep ? Number(opts.keep) : undefined,
+                sessions: opts.session ? [opts.session] : undefined,
+                dry_run: Boolean(opts['dry-run'] || opts.dryrun),
+                force: Boolean(opts.force),
+              };
+              const result = await api('/cleanup', { method: 'POST', body: JSON.stringify(body) });
+              toast(`cleanup done`);
+              if (result?.output) console.log(result.output);
+              break;
+            }
+            case '/select': {
+              const sessionId = args[0];
+              if (!sessionId) throw new Error('session required');
+              await selectSession(sessionId);
+              break;
+            }
+            default:
+              toast('unknown command', 'error');
+          }
+        } catch (error) {
+          toast(error.message, 'error');
         }
       }
 
-      async function loadSession(sessionId) {
-        const data = await fetchJSON(`/sessions/${sessionId}`);
-        const manifest = data.manifest || {};
-        renderMetrics(manifest);
-        finalAnswer.textContent = manifest?.completion?.final_answer ?? '(pending)';
-        renderRounds(manifest.rounds || []);
-        renderEvents(data.events || []);
-      }
-
-      sessionSelect.addEventListener('change', (e) => {
-        const id = e.target.value;
-        if (id) loadSession(id).catch(console.error);
+      apiBaseInput.addEventListener('change', (e) => setBaseUrl(e.target.value));
+      autoRefreshToggle.addEventListener('change', (e) => {
+        state.autoRefresh = e.target.checked;
+        scheduleRefresh();
       });
-
-      refreshBtn.addEventListener('click', () => {
-        const id = sessionSelect.value;
-        if (id) {
-          loadSession(id).catch(console.error);
-        } else {
-          loadSessions().catch(console.error);
+      qs('#refreshAllBtn').addEventListener('click', refreshAll);
+      qs('#launchForm').addEventListener('submit', submitLaunch);
+      qs('#clearFormBtn').addEventListener('click', clearForm);
+      qs('#runCommandBtn').addEventListener('click', () => runCommand(commandInput.value));
+      commandInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && e.metaKey) {
+          e.preventDefault();
+          runCommand(commandInput.value);
         }
       });
 
-      loadSessions().catch(console.error);
-      setInterval(() => {
-        const id = sessionSelect.value;
-        if (id) loadSession(id).catch(console.error);
-      }, 10000);
+      async function runControl(command) {
+        if (!state.selected) return;
+        await api(`/sessions/${state.selected}/control`, {
+          method: 'POST',
+          body: JSON.stringify({ command }),
+        });
+        toast(`${command} queued for ${state.selected}`);
+      }
+
+      qs('#resumeBtn').addEventListener('click', () => {
+        if (!state.selected) return;
+        api(`/sessions/${state.selected}/resume`, { method: 'POST', body: JSON.stringify({}) })
+          .then(() => toast(`resume issued for ${state.selected}`))
+          .catch(() => {});
+      });
+      qs('#pauseBtn').addEventListener('click', () => runControl('PAUSE'));
+      qs('#continueBtn').addEventListener('click', () => runControl('RESUME'));
+      qs('#stopBtn').addEventListener('click', () => runControl('STOP'));
+
+      qs('#copySummaryBtn').addEventListener('click', async () => {
+        const summary = state.details?.summary_md;
+        if (!summary) {
+          toast('no summary yet', 'error');
+          return;
+        }
+        try {
+          await navigator.clipboard.writeText(summary);
+          toast('summary copied');
+        } catch (error) {
+          toast('clipboard error', 'error');
+        }
+      });
+
+      qs('#cleanupForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const body = {
+          days: Number(qs('#cleanupDays').value) || undefined,
+          keep: Number(qs('#cleanupKeep').value) || undefined,
+          sessions: qs('#cleanupSessions')
+            .value.split('\n')
+            .map((line) => line.trim())
+            .filter(Boolean),
+          dry_run: qs('#cleanupDryRun').checked,
+          force: qs('#cleanupForce').checked,
+        };
+        if (!body.sessions.length) delete body.sessions;
+        try {
+          const result = await api('/cleanup', { method: 'POST', body: JSON.stringify(body) });
+          toast('cleanup ran');
+          if (result?.output) console.log(result.output);
+          refreshAll();
+        } catch (error) {
+          console.error(error);
+        }
+      });
+
+      refreshAll();
+      scheduleRefresh();
     </script>
   </body>
 </html>
