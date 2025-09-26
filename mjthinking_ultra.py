@@ -87,7 +87,7 @@ def bon_wave(question, model, wave_idx, n):
         prompt=f"{PROMPT_TMPL}\n\nQuestion:\n{question}\n"
         try:
             resp=post_generate(model, prompt, CTX, TEMP, TOP_P, PREDICT, seed)
-            txt=resp.get("response",""); (RUNS/f"{wave}_bon_{i}.txt").write_text(txt)
+            txt=resp.get("response",""); (RUNS/f"{wave_idx}_bon_{i}.txt").write_text(txt)
             finals.append(extract_final_answer(txt))
         except Exception as e:
             finals.append("")
@@ -128,7 +128,7 @@ def tot_wave(question, model, wave_idx, plans, expand):
     return finals
 
 def run(question):
-    start=time.time(); model=MODEL1; weights={}
+    start=time.time(); model=MODEL1; weights={}; leader_samples_map={}
     while True:
         left=TIME_BUDGET - int(time.time()-start)
         if left<=0: break
@@ -142,21 +142,33 @@ def run(question):
         candidate = leader_key if keytype=="NUM" else leader_samples[0]
         verdict = referee(question, candidate, model)
         gain = c + (0.5 if verdict=="PASS" else 0.0)
-        weights[(keytype,leader_key,model)] = weights.get((keytype,leader_key,model),0.0) + gain
+        key = (keytype, leader_key, model)
+        weights[key] = weights.get(key, 0.0) + gain
+        leader_samples_map[key] = leader_samples
         # confidence
         best_key, best_w = max(weights.items(), key=lambda kv: kv[1])
+        best_keytype, best_leader_key, best_model = best_key
         tot_w = sum(weights.values())
-        conf = best_w/ tot_w if tot_w>0 else 0.0
+        conf = best_w / tot_w if tot_w > 0 else 0.0
         print(f"[wave {wave:02d} | {MODE} | model={model}] vote={c}/{t} verdict={verdict} conf={conf:.2%} left={left}s")
         if conf>=CONF and verdict=="PASS":
-            final = best_key[0][1] if best_key[0][0]=="NUM" else candidate
-            return final, conf, model
+            if best_keytype=="NUM":
+                final = best_leader_key
+            else:
+                samples = leader_samples_map.get(best_key, [])
+                final = samples[0] if samples else candidate
+            return final, conf, best_model
         if model==MODEL1 and MODEL2 and wave>=2: model=MODEL2
         if time.time()-start>TIME_BUDGET: break
     if not weights: return "UNKNOWN", 0.0, model
     best_key, best_w = max(weights.items(), key=lambda kv: kv[1])
-    final = best_key[0][1] if best_key[0][0]=="NUM" else "UNKNOWN"
-    return final, best_w/sum(weights.values()), best_key[0][2]
+    best_keytype, best_leader_key, best_model = best_key
+    samples = leader_samples_map.get(best_key, [])
+    if best_keytype=="NUM":
+        final = best_leader_key
+    else:
+        final = samples[0] if samples else "UNKNOWN"
+    return final, best_w/sum(weights.values()), best_model
 
 if __name__=="__main__":
     if len(sys.argv)<2:

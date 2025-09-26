@@ -43,6 +43,7 @@ PROMPTS_DIR="${PROMPTS_DIR:-$DIR/prompts}"
 mkdir -p "$PROMPTS_DIR"
 PLUGINS_DIR="${PLUGINS_DIR:-$DIR/plugins}"
 mkdir -p "$PLUGINS_DIR"
+PROGRESS_UPDATE_INTERVAL="${PROGRESS_UPDATE_INTERVAL:-0}"
 
 format_duration() {
   local total=${1:-0}
@@ -297,7 +298,6 @@ else
   AUTO_EXTEND_VALUE="$AUTO_EXTEND_ROUNDS" \
   VALIDATOR_HOOKS_VALUE="$VALIDATOR_HOOKS" \
   python3 - <<'PY'
-{{ ... }}
 import json, os
 
 manifest = {
@@ -412,36 +412,6 @@ display notification bodyText with title "MJThinking" subtitle statusText
 OSA
   fi
 }
-
-if [[ $RESUME_MODE -eq 1 ]]; then
-  RESUME_JSON=$(python3 - <<'PY'
-import json, os, time
-
-payload = {
-    "event": "session_resume",
-    "session_id": os.environ.get("SESSION_ID"),
-    "timestamp": int(time.time())
-}
-print(json.dumps(payload))
-PY
-)
-  append_event "$RESUME_JSON"
-else
-  SESSION_JSON=$(QUESTION="$QUESTION" CHAINS="$CHAINS" START_TS="$START_TS" python3 - <<'PY'
-import json, os
-
-payload = {
-    "event": "session_start",
-    "session_id": os.environ.get("SESSION_ID"),
-    "question": os.environ.get("QUESTION", ""),
-    "chains": int(os.environ.get("CHAINS", "0")),
-    "timestamp": int(os.environ.get("START_TS", "0")),
-}
-print(json.dumps(payload))
-PY
-)
-  append_event "$SESSION_JSON"
-fi
 
 CTL_FILE="$SESSION_DIR/control.ctl"
 if [ ! -f "$CTL_FILE" ]; then
@@ -1009,7 +979,7 @@ else:
 round_entry = {
     "round": int(os.environ.get("ROUND", "0")),
     "timestamp": int(os.environ.get("ROUND_TS", "0")),
-    "duration_seconds": int(os.environ.get("ROUND_DURATION", "0")),
+    "round_duration": int(os.environ.get("ROUND_DURATION", "0")),
     "elapsed_seconds": int(os.environ.get("ELAPSED", "0")),
     "eta_seconds": int(os.environ.get("ETA_VALUE", "-1")),
     "majority_count": int(os.environ.get("MAJ_COUNT", "0")),
