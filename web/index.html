@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>MJThinking Dashboard</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        margin: 0;
+        background: #0f172a;
+        color: #e2e8f0;
+      }
+      header {
+        padding: 1.5rem 2rem;
+        background: #1e293b;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      main {
+        padding: 2rem;
+        max-width: 960px;
+        margin: 0 auto;
+      }
+      h1 {
+        margin: 0;
+        font-size: 1.6rem;
+      }
+      select,
+      button {
+        background: #334155;
+        color: #e2e8f0;
+        border: 1px solid #475569;
+        border-radius: 6px;
+        padding: 0.5rem 0.75rem;
+        font-size: 1rem;
+      }
+      button:hover,
+      select:hover {
+        border-color: #38bdf8;
+      }
+      .panel {
+        background: rgba(15, 23, 42, 0.85);
+        border: 1px solid #1f2937;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 10px 40px rgba(15, 23, 42, 0.4);
+      }
+      .grid {
+        display: grid;
+        gap: 1rem;
+      }
+      .grid.two {
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      }
+      .metric {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        background: #111827;
+        padding: 1rem;
+        border-radius: 8px;
+        border: 1px solid #1f2937;
+      }
+      .metric span:first-child {
+        font-size: 0.85rem;
+        color: #94a3b8;
+      }
+      .metric span:last-child {
+        font-size: 1.2rem;
+        font-weight: 600;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+        font-size: 0.95rem;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 0.65rem 0.5rem;
+        border-bottom: 1px solid #1f2937;
+      }
+      th {
+        color: #94a3b8;
+        font-weight: 500;
+      }
+      tbody tr:nth-child(odd) {
+        background: #111827;
+      }
+      pre {
+        background: #0f172a;
+        border: 1px solid #1f2937;
+        padding: 1rem;
+        border-radius: 8px;
+        overflow-x: auto;
+        max-height: 200px;
+      }
+      footer {
+        text-align: center;
+        padding: 1rem 0;
+        color: #475569;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>MJThinking Session Monitor</h1>
+      <div>
+        <select id="sessionSelect"></select>
+        <button id="refreshBtn">Refresh</button>
+      </div>
+    </header>
+    <main>
+      <section class="panel">
+        <h2>Overview</h2>
+        <div class="grid two" id="overviewMetrics"></div>
+      </section>
+      <section class="panel">
+        <h2>Final Answer</h2>
+        <pre id="finalAnswer">Select a session…</pre>
+      </section>
+      <section class="panel">
+        <h2>Rounds</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Confidence</th>
+              <th>Validators</th>
+              <th>Referee</th>
+              <th>Majority</th>
+            </tr>
+          </thead>
+          <tbody id="roundTable"></tbody>
+        </table>
+      </section>
+      <section class="panel">
+        <h2>Recent Events</h2>
+        <pre id="eventLog"></pre>
+      </section>
+    </main>
+    <footer>
+      <small>Powered by mjthinking_api.py</small>
+    </footer>
+    <script>
+      const sessionSelect = document.getElementById('sessionSelect');
+      const overviewMetrics = document.getElementById('overviewMetrics');
+      const finalAnswer = document.getElementById('finalAnswer');
+      const roundTable = document.getElementById('roundTable');
+      const eventLog = document.getElementById('eventLog');
+      const refreshBtn = document.getElementById('refreshBtn');
+
+      async function fetchJSON(url) {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+      }
+
+      function renderMetrics(manifest) {
+        const completion = manifest?.completion || {};
+        const metrics = [
+          { label: 'Status', value: completion.status || 'in_progress' },
+          { label: 'Rounds', value: completion.rounds ?? '--' },
+          { label: 'Elapsed (s)', value: completion.elapsed_seconds ?? '--' },
+          { label: 'Confidence Target', value: manifest?.parameters?.TARGET_CONF ?? '--' },
+          { label: 'Chains', value: manifest?.parameters?.CHAINS ?? '--' },
+          { label: 'Prompt Style', value: manifest?.parameters?.PROMPT_STYLE ?? 'default' }
+        ];
+        overviewMetrics.innerHTML = metrics
+          .map(
+            (m) => `
+            <div class="metric">
+              <span>${m.label}</span>
+              <span>${m.value}</span>
+            </div>`
+          )
+          .join('');
+      }
+
+      function renderRounds(rounds) {
+        if (!Array.isArray(rounds) || rounds.length === 0) {
+          roundTable.innerHTML = '<tr><td colspan="5">No rounds recorded.</td></tr>';
+          return;
+        }
+        roundTable.innerHTML = rounds
+          .map((r) => `
+            <tr>
+              <td>${r.round}</td>
+              <td>${r.confidence_percent ?? 'n/a'}</td>
+              <td>${r.validators_pass ?? 'n/a'}</td>
+              <td>${r.referee_verdict ?? 'n/a'}</td>
+              <td>${r.final_answer ?? ''}</td>
+            </tr>`)
+          .join('');
+      }
+
+      function renderEvents(events) {
+        if (!Array.isArray(events) || events.length === 0) {
+          eventLog.textContent = 'No events yet.';
+          return;
+        }
+        const lines = events.map((evt) => JSON.stringify(evt, null, 2)).join('\n\n');
+        eventLog.textContent = lines;
+      }
+
+      async function loadSessions() {
+        const sessions = await fetchJSON('/sessions');
+        sessionSelect.innerHTML = '';
+        sessions.forEach((s, idx) => {
+          const opt = document.createElement('option');
+          opt.value = s.session_id;
+          opt.textContent = `${s.session_id} (${s.status ?? 'in_progress'})`;
+          if (idx === 0) opt.selected = true;
+          sessionSelect.appendChild(opt);
+        });
+        if (sessions.length > 0) {
+          await loadSession(sessions[0].session_id);
+        } else {
+          finalAnswer.textContent = 'No sessions yet.';
+          roundTable.innerHTML = '';
+          eventLog.textContent = '';
+        }
+      }
+
+      async function loadSession(sessionId) {
+        const data = await fetchJSON(`/sessions/${sessionId}`);
+        const manifest = data.manifest || {};
+        renderMetrics(manifest);
+        finalAnswer.textContent = manifest?.completion?.final_answer ?? '(pending)';
+        renderRounds(manifest.rounds || []);
+        renderEvents(data.events || []);
+      }
+
+      sessionSelect.addEventListener('change', (e) => {
+        const id = e.target.value;
+        if (id) loadSession(id).catch(console.error);
+      });
+
+      refreshBtn.addEventListener('click', () => {
+        const id = sessionSelect.value;
+        if (id) {
+          loadSession(id).catch(console.error);
+        } else {
+          loadSessions().catch(console.error);
+        }
+      });
+
+      loadSessions().catch(console.error);
+      setInterval(() => {
+        const id = sessionSelect.value;
+        if (id) loadSession(id).catch(console.error);
+      }, 10000);
+    </script>
+  </body>
+</html>

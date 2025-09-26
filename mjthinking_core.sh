@@ -8,19 +8,44 @@ CHAINS_IN="${2:-}"
 [ -z "$QUESTION" ] && { echo "Usage: $0 \"YOUR QUESTION\" [CHAINS]"; exit 1; }
 
 CHAINS="${CHAINS_IN:-${CHAINS:-10}}"
+MODEL="${MODEL:-deepseek-r1:7b}"
 CTX="${CTX:-4096}"
 TEMP="${TEMP:-0.8}"
 TOP_P="${TOP_P:-0.95}"
 PREDICT="${PREDICT:-900}"
 API="${API:-http://127.0.0.1:11434}"
-RUNS_DIR="${MJTHINKING_SESSION_DIR:-$DIR/runs}"
+RUNS_DIR="${MJTHINKING_ROUND_DIR:-$DIR/runs}"
+PROMPTS_DIR="${PROMPTS_DIR:-$DIR/prompts}"
+PROMPT_STYLE="${PROMPT_STYLE:-default}"
+PROMPT_FILE_OVERRIDE="${PROMPT_FILE:-}"
+
 mkdir -p "$RUNS_DIR"
 rm -f "$RUNS_DIR"/*.json "$RUNS_DIR"/*.txt "$RUNS_DIR/votes.txt"
 
-PROMPT="$(cat "$DIR/prompt_template.txt")"
+template_path=""
+if [[ -n "$PROMPT_FILE_OVERRIDE" && -f "$PROMPT_FILE_OVERRIDE" ]]; then
+  template_path="$PROMPT_FILE_OVERRIDE"
+else
+  style_path="$PROMPTS_DIR/${PROMPT_STYLE}.txt"
+  if [[ -f "$style_path" ]]; then
+    template_path="$style_path"
+  elif [[ -f "$DIR/prompt_template.txt" ]]; then
+    template_path="$DIR/prompt_template.txt"
+  fi
+fi
+
+if [[ -z "$template_path" ]]; then
+  echo "[!] Prompt template not found for style '$PROMPT_STYLE'" >&2
+  echo "    Checked: ${PROMPT_FILE_OVERRIDE:-'(PROMPT_FILE unset)'} and $PROMPTS_DIR/${PROMPT_STYLE}.txt" >&2
+  echo "    Ensure prompt templates exist under prompts/" >&2
+  exit 1
+fi
+
+PROMPT="$(cat "$template_path")
 
 Question:
 ${QUESTION}
+"
 
 echo "[*] Launching $CHAINS chains on $MODEL (ctx=$CTX, temp=$TEMP, top_p=$TOP_P, max_new=$PREDICT)…"
 pids=()

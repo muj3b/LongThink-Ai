@@ -3,6 +3,7 @@
 ![Status](https://img.shields.io/badge/status-experimental-blue)
 ![Language](https://img.shields.io/badge/python-3.11%2B-3776AB)
 ![API](https://img.shields.io/badge/API-Ollama-green)
+![Research](https://img.shields.io/badge/backed_by-2024_studies-gold)
 
 <div align="center">
 
@@ -13,6 +14,40 @@ MJThinking lets 7B–14B models think for 30–120+ minutes so they can reach an
 </div>
 
 > **Quick take:** MJThinking trades *time* for *quality*. Instead of purchasing bigger models, you orchestrate longer, supervised reasoning sessions while keeping everything on local hardware and logging every trace.
+
+## 🔬 The Science Behind Extended Reasoning
+
+> [!NOTE]
+> **Yes, it actually works.** Recent 2024 research validates this approach.
+
+### 📊 Research Foundation
+
+**What makes MJThinking legit:**
+- **Test-time compute scaling** is more effective than scaling model parameters
+- **Small language models can outperform larger models** when applying compute-optimal test-time scaling methods
+- Models **learn to leverage more test-time compute** to solve harder problems
+
+### 🔧 How It Increases Reasoning Time
+
+| Technique | Implementation | Research Basis |
+|-----------|----------------|----------------|
+| **🎯 Best-of-N Sampling** | Sample N outputs in parallel and select the highest-scoring | Proven to significantly improve LM performance |
+| **🌳 Tree-of-Thought Planning** | Generate, expand, and evaluate solution plans | Structured exploration prevents collapse into weak answers |
+| **✅ Verification Layers** | Multi-stage validation with referee models | Quality gates ensure consensus before accepting results |
+
+### 🎯 What Makes This Unique?
+
+> [!IMPORTANT]
+> **MJThinking combines proven techniques into a complete production system.**
+
+- **Individual techniques exist** in research papers
+- **Academic experiments** focus on single methods
+- **MJThinking orchestrates everything** into a local, production-ready platform
+- **The trade-off:** Additional computational cost at inference for improved output quality
+
+**Bottom line:** It's not just "thinking longer" - it's **structured exploration with verification**, backed by 2024 research.
+
+---
 
 ## Table of Contents
 
@@ -47,6 +82,7 @@ Large frontier models compress lengthy internal reasoning into quick responses. 
 - **Verification loop:** Referee models and numeric checks gatekeep consensus.
 - **Full transparency:** Every prompt, response, verdict, and vote is archived under `runs/` for post-mortems.
 
+### Tuning Philosophy
 
 - **Time budget:** More minutes yields richer reasoning but keeps GPUs busy.
 - **Confidence threshold (`CONF`):** Raise it to demand stronger consensus before returning results.
@@ -64,7 +100,6 @@ Large frontier models compress lengthy internal reasoning into quick responses. 
 > Long sessions benefit from `TEMP≈0.6`, `MODEL_FALLBACK` pointing to a stronger checkpoint, and vigilant GPU temperature monitoring.
 
 ## 🏗️ Architecture
-{{ ... }}
 
 ```mermaid
 graph TB
@@ -115,12 +150,20 @@ graph TB
 | `mjthinking_core.sh` | Parallel chain launcher | Building block for Best-of-N rounds |
 | `referee.sh` | Answer verification via `referee_prompt.txt` | Independent PASS/FAIL judgement |
 | `arith_eval.py` | Numeric validation | Quick arithmetic cross-checking |
+| `validators/` + `VALIDATOR_HOOKS` | Custom confidence validators executed each round | Augment referee decisions with domain-specific checks |
+| `mjthinking_enqueue.py` | Queue jobs into `runs/queue.jsonl` | Batch prompts for background execution |
+| `mjthinking_worker.py` | Dequeue & process jobs | Hands-free batch processing with logging |
+| `mjthinking_gc.sh` | Session garbage collector | Reclaim disk space by age/keep-count/explicit IDs |
+| `mjthinking_api.py` | FastAPI control plane (launch streams/status) | Integrate with dashboards & custom tooling |
+| `web/` | Static dashboard consuming the API | Quick web view for session status |
+| `plugins/` | Hook scripts triggered during runs | Extend behavior without modifying core scripts |
 
 ### 📋 Prompt Templates
 
 | Template | Controls | Customization |
 | --- | --- | --- |
-| `prompt_template.txt` | Core reasoning scaffold & final-line contract | 🔧 Essential |
+| `prompts/default.txt` (set via `PROMPT_STYLE=default`) | Core reasoning scaffold & final-line contract | 🔧 Essential |
+| `prompts/<style>.txt` | Style-specific reasoning scaffolds | 🎨 Swap in domain voices (math, finance, debugging, etc.) |
 | `referee_prompt.txt` | Verification instructions | 🔧 Essential |
 | `tot_plan_prompt.txt` / `tot_attempt_prompt.txt` / `tot_evaluate_prompt.txt` | Tree-of-Thought workflow | 🎨 Advanced |
 
@@ -136,6 +179,12 @@ graph TB
 
    ```bash
    ./mjthinking.sh "What is 37 × 29?"
+   ```
+
+3. **Resume an interrupted session**
+
+   ```bash
+   ./mjthinking.sh --resume mjthinking_20240908_123456_42
    ```
 
 3. **Launch your first deep-think session**
@@ -220,6 +269,10 @@ TIME_BUDGET=7200 MODE=HYBRID ./mjthinking_run7b_bg.sh \
 | `TIME_BUDGET` | `600` (Pro/Ultra) | Max wall-clock seconds | Increase to unlock deeper reasoning |
 | `BATCH` / `CHAINS` | `12` / `10` | Parallel chains per wave/round | Balance throughput vs VRAM and API load |
 | `CONF` | `0.66` | Weighted confidence threshold | Raise for stricter consensus |
+| `MJTHINKING_WEBHOOK_URL` | _(empty)_ | Optional HTTP endpoint to receive JSON progress events | Point to Slack/Discord/web dashboards; omit to disable |
+| `MJTHINKING_WEBHOOK_TIMEOUT` | `2` | Seconds before webhook POST times out | Increase for slow endpoints |
+| `MJTHINKING_NOTIFY` | _(empty)_ | Enable macOS desktop notifications when set (any non-empty value) | Uses `osascript`; ignored when unset |
+| `MJTHINKING_RETRIES` | `3` | Automatic retries per round when `mjthinking_core.sh` fails | Backoff starts at 5s and doubles up to 60s |
 
 ### 🎨 Advanced Tuning
 
@@ -281,6 +334,13 @@ PREDICT=1600 CHAINS=20 TIME_BUDGET=3600
 ## 🔍 Observability & Debugging
 
 - **`runs/` audit trail:** Raw traces (`*.txt`, `*.json`), vote tallies (`votes.txt`), referee verdicts (`referee.txt`), background logs, and PID markers.
+- **Session monitor:** `python3 mjthinking_monitor.py --follow` renders live progress using `session.jsonl` metadata.
+- **Quick status:** `python3 mjthinking_status.py` prints a snapshot of the latest session.
+- **Metrics rollup:** `python3 mjthinking_metrics.py --limit 20` summarizes success rate, runtime stats, and recent sessions.
+- **Control helper:** `python3 mjthinking_ctl.py pause|resume|stop --session <id>` writes commands to `control.ctl`.
+- **Adaptive ETA history:** `mjthinking.sh` appends per-round timings to `runs/history_rounds.jsonl`; future sessions blend historical averages into ETA estimates.
+- **Round checkpoints:** Each round saves `round_<n>_best.txt` and `round_<n>_snapshot.json` under the session directory for quick rollbacks.
+- **History analysis:** `python3 mjthinking_history.py --limit 50` summarizes historical round durations.
 - **Connectivity check:** `curl -s ${API:-http://127.0.0.1:11434}/api/tags | jq '.[].name'`
 - **Sanity prompt:** `CHAINS=2 PREDICT=200 ./mjthinking_core.sh "Test: what is 2+2?"`
 - **Trace search:** `rg "Final Answer:" runs/*.txt`
@@ -347,6 +407,58 @@ done < questions.txt
   ```
 
 - **Metrics logging:** Capture confidence trends by piping controller output to analytics.
+- **Resumable sessions:** `./mjthinking.sh --resume <session_id>` loads `manifest.json` + `state.json`, continuing where you left off.
+- **Adaptive scheduling:** Automatic confidence tracking adjusts rounds, compares against `TARGET_CONF`, and records trends per round.
+- **Validator hooks:** Drop scripts into `validators/` and set `VALIDATOR_HOOKS=math-check,unit-tests` to gate answers beyond the referee.
+- **Rich artifacts:** Every session writes `summary.md`, `summary.html`, and `summary.json` alongside per-round snapshots.
+- **Queue workflows:** `mjthinking_enqueue.py` + `mjthinking_worker.py` manage background batches; receipts live under `runs/queue_logs/`.
+- **Cleanups:** `mjthinking_gc.sh --days=7 --keep=20` trims old sessions when disk space runs low.
+- **Plugin hooks:** Drop scripts in `plugins/` to react to lifecycle events (`session_start`, `pre_round`, `post_round`, `session_complete`).
+- **REST + UI:** `uvicorn mjthinking_api:app --reload` exposes endpoints; open `web/index.html` against the API for a live dashboard.
+
+### 🧵 Queue Automation
+
+1. Enqueue prompts:
+
+   ```bash
+   ./mjthinking_enqueue.py "Analyze the spectral radius of a stochastic matrix"
+   ./mjthinking_enqueue.py --file prompts/math_proof.txt --style math
+   ```
+
+2. Run the worker (daemon mode):
+
+   ```bash
+   ./mjthinking_worker.py --poll-interval 30 --verbose
+   ```
+
+3. Inspect receipts/logs in `runs/queue_logs/`.
+
+### 🧹 Session Cleanup
+
+```bash
+# Dry-run delete sessions older than 10 days
+./mjthinking_gc.sh --days=10 --dry-run
+
+# Keep the latest 25 sessions, delete the rest (with confirmation)
+./mjthinking_gc.sh --keep=25
+```
+
+### 🌐 REST API & Dashboard
+
+```bash
+# Launch API (default: http://127.0.0.1:8000)
+uvicorn mjthinking_api:app --reload
+
+# Visit the web dashboard (served as static files)
+python3 -m http.server --directory web 3000
+# then open http://127.0.0.1:3000 and point it at the API
+```
+
+### 🔌 Plugin Hooks
+
+- Create scripts under `plugins/` (bash or python).
+- Hooks currently fired: `session_start`, `session_resume`, `pre_round`, `validators_complete`, `post_round`, `session_complete`.
+- Example: `plugins/log_round.py` appends summaries to `runs/<id>/plugin_log.jsonl`.
 
 ## 📖 FAQ
 
@@ -360,9 +472,9 @@ MJThinking systematically trades time for quality. Instead of single-shot prompt
 <details>
 <summary><strong>❓ What hardware do I need?</strong></summary>
 
-- Minimum: ~8 GB RAM + CPU (slow but functional)
-- Recommended: 16 GB RAM + recent GPU
-- Optimal: 32 GB RAM + RTX 4090 (or similar) for long hybrid runs
+- Minimum: ~8 GB RAM + CPU (slow but functional)
+- Recommended: 16 GB RAM + recent GPU
+- Optimal: 32 GB RAM + RTX 4090 (or similar) for long hybrid runs
 
 </details>
 
