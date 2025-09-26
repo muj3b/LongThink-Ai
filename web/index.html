@@ -40,10 +40,13 @@
         background: rgba(5, 11, 22, 0.82);
         border-bottom: 1px solid rgba(148, 163, 184, 0.12);
         padding: 1.1rem 2.2rem;
+      }
+
+      .header-inner {
         display: flex;
-        gap: 1.5rem;
         align-items: center;
         justify-content: space-between;
+        gap: 1.5rem;
       }
 
       .brand {
@@ -82,6 +85,32 @@
         flex-wrap: wrap;
         gap: 0.75rem;
         align-items: center;
+      }
+
+      .status-indicator {
+        font-size: 0.75rem;
+        padding: 0.35rem 0.65rem;
+        border-radius: 999px;
+        border: 1px solid transparent;
+        transition: background 0.2s ease, color 0.2s ease, border 0.2s ease;
+      }
+
+      .status-indicator.pending {
+        background: rgba(148, 163, 184, 0.12);
+        color: var(--secondary);
+        border-color: rgba(148, 163, 184, 0.2);
+      }
+
+      .status-indicator.ok {
+        background: rgba(34, 197, 94, 0.18);
+        color: var(--success);
+        border-color: rgba(34, 197, 94, 0.32);
+      }
+
+      .status-indicator.error {
+        background: rgba(239, 68, 68, 0.18);
+        color: var(--danger);
+        border-color: rgba(239, 68, 68, 0.35);
       }
 
       label.inline {
@@ -156,15 +185,33 @@
 
       main {
         flex: 1;
-        padding: 2.3rem 2.3rem 3rem;
+        padding: 2.1rem 2.3rem 3rem;
         display: grid;
-        gap: 1.6rem;
-        grid-template-columns: 340px minmax(0, 1fr);
+        gap: 1.5rem;
+        grid-template-columns: 300px 320px minmax(0, 1fr);
+        align-items: start;
       }
 
-      @media (max-width: 1100px) {
+      @media (max-width: 1400px) {
+        main {
+          grid-template-columns: 280px minmax(0, 1fr);
+        }
+        .column-mid {
+          order: 1;
+        }
+        .column-wide {
+          order: 2;
+        }
+      }
+
+      @media (max-width: 1024px) {
         main {
           grid-template-columns: 1fr;
+        }
+        .column-compact,
+        .column-mid,
+        .column-wide {
+          order: initial;
         }
       }
 
@@ -172,6 +219,15 @@
         display: flex;
         flex-direction: column;
         gap: 1.4rem;
+      }
+
+      .column-compact .panel {
+        min-height: 0;
+      }
+
+      .column-mid .panel,
+      .column-wide .panel {
+        min-height: 0;
       }
 
       .panel {
@@ -453,26 +509,29 @@
   <body>
     <div class="toast-container" id="toastContainer"></div>
     <header>
-      <div class="brand">
-        <div class="brand-logo">MJ</div>
-        <div>
-          <h1>MJThinking Control Center</h1>
-          <p>Launch, monitor, queue, resume, or stop long-form reasoning runs.</p>
+      <div class="header-inner">
+        <div class="brand">
+          <div class="brand-logo">MJ</div>
+          <div>
+            <h1>MJThinking Control Center</h1>
+            <p>Launch, monitor, queue, resume, or stop long-form reasoning runs.</p>
+          </div>
         </div>
-      </div>
-      <div class="header-controls">
-        <label class="inline">
-          API
-          <input type="url" id="apiBase" placeholder="http://127.0.0.1:8000" spellcheck="false" />
-        </label>
-        <label class="inline">
-          <input type="checkbox" id="autoRefreshToggle" checked /> auto-refresh
-        </label>
-        <button class="secondary" id="refreshAllBtn">Refresh now</button>
+        <div class="header-controls">
+          <label class="inline">
+            API
+            <input type="url" id="apiBase" placeholder="http://127.0.0.1:8000" spellcheck="false" />
+          </label>
+          <label class="inline">
+            <input type="checkbox" id="autoRefreshToggle" checked /> auto-refresh
+          </label>
+          <div class="status-indicator pending" id="connectionStatus">Waiting for API…</div>
+          <button class="secondary" id="refreshAllBtn">Refresh now</button>
+        </div>
       </div>
     </header>
     <main>
-      <section class="column">
+      <section class="column column-compact">
         <article class="panel">
           <h2>Sessions <span id="sessionCount"></span></h2>
           <div id="sessionList" class="session-list"></div>
@@ -481,6 +540,8 @@
           <h2>Queue <span id="queueCount"></span></h2>
           <div id="queueList" class="column" style="gap:0.6rem;"></div>
         </article>
+      </section>
+      <section class="column column-mid">
         <article class="panel">
           <h2>Launch / Queue</h2>
           <form id="launchForm" class="column" style="gap:0.85rem;">
@@ -529,25 +590,6 @@ TIME_BUDGET=1200"></textarea>
             <button class="secondary" id="runCommandBtn">Run</button>
           </div>
         </article>
-      </section>
-      <section class="column">
-        <article class="panel">
-          <h2 id="detailsTitle">Session</h2>
-          <div class="toolbar" style="margin-bottom:0.8rem;">
-            <button class="secondary" id="resumeBtn">Resume</button>
-            <button class="secondary" data-command="PAUSE" id="pauseBtn">Pause</button>
-            <button class="secondary" data-command="RESUME" id="continueBtn">Continue</button>
-            <button class="danger" data-command="STOP" id="stopBtn">Stop</button>
-            <button class="ghost" id="copySummaryBtn">Copy summary</button>
-          </div>
-          <div id="metricsGrid" class="metrics-grid"></div>
-          <div id="roundsGrid" class="rounds-grid" style="margin-bottom:1.1rem;"></div>
-          <div id="artifactGrid" class="column" style="gap:0.8rem;"></div>
-        </article>
-        <article class="panel">
-          <h2>Event log</h2>
-          <div class="event-log" id="eventLog"><pre>No session selected.</pre></div>
-        </article>
         <article class="panel">
           <h2>Cleanup</h2>
           <form id="cleanupForm" class="column" style="gap:0.8rem;">
@@ -574,6 +616,25 @@ TIME_BUDGET=1200"></textarea>
           </form>
         </article>
       </section>
+      <section class="column column-wide">
+        <article class="panel">
+          <h2 id="detailsTitle">Session</h2>
+          <div class="toolbar" style="margin-bottom:0.8rem;">
+            <button class="secondary" id="resumeBtn">Resume</button>
+            <button class="secondary" data-command="PAUSE" id="pauseBtn">Pause</button>
+            <button class="secondary" data-command="RESUME" id="continueBtn">Continue</button>
+            <button class="danger" data-command="STOP" id="stopBtn">Stop</button>
+            <button class="ghost" id="copySummaryBtn">Copy summary</button>
+          </div>
+          <div id="metricsGrid" class="metrics-grid"></div>
+          <div id="roundsGrid" class="rounds-grid" style="margin-bottom:1.1rem;"></div>
+          <div id="artifactGrid" class="column" style="gap:0.8rem;"></div>
+        </article>
+        <article class="panel">
+          <h2>Event log</h2>
+          <div class="event-log" id="eventLog"><pre>No session selected.</pre></div>
+        </article>
+      </section>
     </main>
     <footer>MJThinking • Local deep reasoning orchestrator</footer>
     <script>
@@ -589,12 +650,13 @@ TIME_BUDGET=1200"></textarea>
         details: null,
         autoRefresh: true,
         timer: null,
+        connectionStatus: 'pending',
       };
 
       const toastContainer = qs('#toastContainer');
-      const apiBaseInput = qs('#apiBase');
-      const autoRefreshToggle = qs('#autoRefreshToggle');
+      const connectionStatusEl = qs('#connectionStatus');
       const sessionListEl = qs('#sessionList');
+      const autoRefreshToggle = qs('#autoRefreshToggle');
       const sessionCountEl = qs('#sessionCount');
       const queueListEl = qs('#queueList');
       const queueCountEl = qs('#queueCount');
@@ -621,26 +683,48 @@ TIME_BUDGET=1200"></textarea>
         setTimeout(() => el.remove(), 4500);
       }
 
+      function setConnectionStatus(state, message) {
+        if (!connectionStatusEl) return;
+        connectionStatusEl.className = `status-indicator ${state}`;
+        connectionStatusEl.textContent = message;
+      }
+
       function setBaseUrl(url) {
         const normalized = (url || '').replace(/\/$/, '');
         if (!normalized) return;
         state.baseUrl = normalized;
         localStorage.setItem('mjthinking.apiBase', normalized);
         toast(`API set to ${normalized}`);
+        setConnectionStatus('pending', 'Contacting API…');
         refreshAll();
       }
 
       async function api(path, options = {}) {
         const url = `${state.baseUrl}${path}`;
         const opts = { headers: { 'Content-Type': 'application/json' }, ...options };
+        setConnectionStatus('pending', 'Contacting API…');
         try {
           const res = await fetch(url, opts);
-          if (!res.ok) throw new Error((await res.text()) || res.statusText);
           const text = await res.text();
-          return text ? JSON.parse(text) : null;
+          if (!res.ok) {
+            const message = text || `${res.status} ${res.statusText}`;
+            const error = new Error(message);
+            setConnectionStatus('error', message);
+            toast(message, 'error');
+            throw error;
+          }
+          const data = text ? JSON.parse(text) : null;
+          setConnectionStatus('ok', 'Connected');
+          return data;
         } catch (err) {
-          toast(err.message || 'request failed', 'error');
-          throw err;
+          const normalized = err instanceof Error ? err : new Error(String(err));
+          const message = normalized.message.includes('Failed to fetch')
+            ? `Unable to reach ${state.baseUrl}. Is the API running on that port?`
+            : normalized.message || 'Request failed';
+          normalized.message = message;
+          setConnectionStatus('error', message);
+          toast(message, 'error');
+          throw normalized;
         }
       }
 
