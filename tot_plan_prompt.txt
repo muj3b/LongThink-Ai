@@ -1,0 +1,7 @@
+You will propose solution PLANS for the QUESTION. Requirements:
+- Output exactly N plans, labeled: PLAN 1:, PLAN 2:, … PLAN N:
+- Each plan = 2–6 bullet steps, concrete and distinct.
+- No final answer here.
+
+QUESTION:
+{QUESTION}

@@ -1,0 +1,33 @@
+<think>
+I need to calculate the product of 37 and 29.
+
+First, I'll break down the multiplication using the distributive property. 
+
+I'll start by multiplying 37 by 20, which equals 740.
+
+Next, I'll multiply 37 by 9, resulting in 333.
+
+Finally, I'll add these two results together: 740 plus 333 gives me 1,073.
+</think>
+
+To calculate \(37 \times 29\), we can break it down using the distributive property:
+
+\[
+37 \times 29 = (30 + 7) \times 29
+\]
+
+First, multiply each part:
+\[
+30 \times 29 = 870
+\]
+\[
+7 \times 29 = 203
+\]
+
+Then, add the results together:
+\[
+870 + 203 = 1,\!073
+\]
+
+**Final Answer:**  
+\boxed{1073}

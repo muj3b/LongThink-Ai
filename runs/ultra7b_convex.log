@@ -1,0 +1,8 @@
+[wave 01 | HYBRID | model=deepseek-r1:7b] vote=10/12 verdict=UNKNOWN conf=100.00% left=1800s
+
+================== MAXTHINK ULTRA — 7B ONLY ==================
+Final Answer: UNKNOWN
+Confidence (weighted): 100.00%   Model: deepseek-r1:7b
+Traces saved in ./runs/
+==============================================================
+

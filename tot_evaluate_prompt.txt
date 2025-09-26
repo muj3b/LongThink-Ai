@@ -1,0 +1,9 @@
+Score each PLAN from 0–10 on: (a) plausibility, (b) completeness, (c) efficiency, with 1-line justification.
+Return JSON ONLY like:
+[{"plan":1,"score":8.5},{"plan":2,"score":7.0},...]
+
+PLANS:
+{PLANS}
+
+QUESTION:
+{QUESTION}

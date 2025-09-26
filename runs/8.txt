@@ -1,0 +1,36 @@
+<think>
+First, I'll break down the multiplication of 37 by 29 using the standard algorithm. 
+
+I'll start by multiplying 37 by the units digit of 29, which is 9.
+
+Calculating 37 times 9:
+- 7 multiplied by 9 equals 63.
+- 30 multiplied by 9 equals 270.
+Adding these together gives me 63 plus 270, resulting in 333.
+
+Next, I'll multiply 37 by the tens digit of 29, which is 20 (since there's a zero in the units place).
+
+Calculating 37 times 20:
+- 37 multiplied by 2 equals 74.
+Then multiplying that result by 10 gives me 740.
+
+Finally, I'll add both partial products together: 333 plus 740.
+
+Adding these numbers together results in a total of 1,073.
+</think>
+
+To find the product of \(37 \times 29\), we can use the standard multiplication algorithm:
+
+\[
+\begin{align*}
+37 \\
+\times\,\,29 \\
+\hline
+37 \times 9 &= 333 \\
+37 \times 20 &= 740 \\
+\hline
+333 + 740 &= 1,\!073 \\
+\end{align*}
+\]
+
+**Final Answer:** \(\boxed{1073}\)

@@ -1,0 +1,12 @@
+/Users/mujeb/LongThink Ai/maxthink_ultra7b.py:94: DeprecationWarning: Flags not at the start of the expression '(?i)plan\\s+(\\d+)\\s*:' (truncated)
+  blocks = re.findall(r'(?i)plan\s+(\d+)\s*:\s*(.*?)(?=(?i)plan\s+\d+\s*:|$)', plan_text, re.S)
+[wave 01 | HYBRID | model=deepseek-r1:7b] vote=12/12 verdict=UNKNOWN conf=100.00% left=1800s
+[wave 03 | HYBRID | model=deepseek-r1:7b] vote=11/12 verdict=UNKNOWN conf=100.00% left=949s
+[wave 05 | HYBRID | model=deepseek-r1:7b] vote=12/12 verdict=UNKNOWN conf=100.00% left=51s
+
+================== MAXTHINK ULTRA — 7B ONLY ==================
+Final Answer: UNKNOWN
+Confidence (weighted): 100.00%   Model: deepseek-r1:7b
+Traces saved in ./runs/
+==============================================================
+

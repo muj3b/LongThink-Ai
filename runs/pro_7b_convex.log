@@ -1,0 +1,10 @@
+[wave 01 | model=deepseek-r1:7b] leader=('TXT', '') weight=11.00/11.00 conf=100.00% verdict=UNKNOWN time_left=1800s
+[wave 02 | model=deepseek-r1:7b] leader=('TXT', '') weight=22.00/22.00 conf=100.00% verdict=UNKNOWN time_left=1162s
+[wave 03 | model=deepseek-r1:7b] leader=('TXT', '') weight=33.00/33.00 conf=100.00% verdict=UNKNOWN time_left=509s
+
+================== MAXTHINK PRO RESULT ==================
+Final Answer: 
+Confidence (weighted): 100.00%   Model: deepseek-r1:7b
+Traces saved in ./runs/
+=========================================================
+

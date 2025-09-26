@@ -1,0 +1,10 @@
+Follow this PLAN to solve the QUESTION. Show working. Then obey FINAL-LINE RULES.
+
+PLAN:
+{PLAN}
+
+QUESTION:
+{QUESTION}
+
+FINAL-LINE RULES:
+Final Answer: <plain text only, one line, no markdown/LaTeX/backticks/symbols>

@@ -1,0 +1,18 @@
+<think>
+I need to calculate the product of 37 and 29 using the standard multiplication method. I'll start by multiplying 37 by each digit of 29, beginning with the units place.
+
+First, I'll multiply 37 by 9, which gives me 333. Then, I'll multiply 37 by 20 (since the second digit is in the tens place), resulting in 740. Finally, I'll add these two products together to find the total.
+</think>
+
+To calculate \(37 \times 29\):
+
+1. **Multiply 37 by each digit of 29:**
+   - Units place: \(37 \times 9 = 333\)
+   - Tens place: \(37 \times 20 = 740\) (since multiplying by the tens place involves adding a zero)
+
+2. **Add the results:**
+   \[
+   333 + 740 = 1,073
+   \]
+
+\(\boxed{1073}\)

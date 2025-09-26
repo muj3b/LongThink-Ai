@@ -1,0 +1,51 @@
+<think>
+I need to find the product of 37 and 29.
+
+First, I'll break down 37 into 30 + 7 to make multiplication easier.
+
+Next, I'll distribute the multiplication over addition:
+- Multiply 30 by 29 to get 870.
+- Then multiply 7 by 29, which equals 203.
+
+Finally, I'll add these two results together: 870 + 203 = 1073.
+
+The final answer is 1073.
+</think>
+
+To find the product of \( 37 \) and \( 29 \), follow these steps:
+
+\[
+37 \times 29
+\]
+
+**Step 1:** Break down the multiplication using the distributive property:
+\[
+37 = 30 + 7
+\]
+So,
+\[
+37 \times 29 = (30 + 7) \times 29
+\]
+
+**Step 2:** Distribute \( 29 \) across both terms:
+\[
+= 30 \times 29 + 7 \times 29
+\]
+
+**Step 3:** Calculate each multiplication separately:
+\[
+30 \times 29 = 870
+\]
+\[
+7 \times 29 = 203
+\]
+
+**Step 4:** Add the results together:
+\[
+870 + 203 = 1073
+\]
+
+Therefore, 
+\[
+37 \times 29 = \boxed{1073}
+\]

@@ -1,0 +1,27 @@
+<think>
+To find the product of 37 and 29, I'll start by multiplying 37 by 20. This gives me 740.
+
+Next, I'll multiply 37 by 9, which equals 333.
+
+Finally, I'll add these two results together: 740 plus 333 equals 1073.
+</think>
+
+To calculate \( 37 \times 29 \), follow these steps:
+
+1. **Multiply 37 by 20:**
+   \[
+   37 \times 20 = 740
+   \]
+
+2. **Multiply 37 by 9:**
+   \[
+   37 \times 9 = 333
+   \]
+
+3. **Add the two products together:**
+   \[
+   740 + 333 = 1073
+   \]
+
+**Final Answer:**  
+\boxed{1073}
