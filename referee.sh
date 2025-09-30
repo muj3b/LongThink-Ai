@@ -35,7 +35,10 @@ BODY="$(jq -n \
 RESP="$(curl -s "$API/api/generate" -H "Content-Type: application/json" -d "$BODY")"
 TEXT="$(jq -r '.response' <<< "$RESP")"
 
-echo "$TEXT" > "$DIR/runs/referee.txt"
+# Use round-specific directory if provided by orchestrator
+ROUND_DIR="${MJTHINKING_ROUND_DIR:-$DIR/runs}"
+mkdir -p "$ROUND_DIR"
+echo "$TEXT" > "$ROUND_DIR/referee.txt"
 
 # Extract VERDICT line
 VERDICT="$(printf "%s\n" "$TEXT" | grep -E '^\s*VERDICT:\s*(PASS|FAIL)\s*$' | tail -n 1 | awk -F: '{print $2}' | tr -d '[:space:]')"
