@@ -1,2 +1,10 @@
-.DS_Store
-.venv/
+# Ignore the directory where session artifacts and logs are stored.
+runs/
+
+# Ignore Python bytecode files
+*.pyc
+__pycache__/
+
+# Ignore temporary files
+*.log
+*.swp

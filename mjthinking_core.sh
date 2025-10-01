@@ -14,34 +14,14 @@ TEMP="${TEMP:-0.8}"
 TOP_P="${TOP_P:-0.95}"
 PREDICT="${PREDICT:-900}"
 API="${API:-http://127.0.0.1:11434}"
-RUNS_DIR="${MJTHINKING_ROUND_DIR:-$DIR/runs}"
-PROMPTS_DIR="${PROMPTS_DIR:-$DIR/prompts}"
-PROMPT_STYLE="${PROMPT_STYLE:-default}"
-PROMPT_FILE_OVERRIDE="${PROMPT_FILE:-}"
 
+# Use round-specific directory if provided by orchestrator, default to runs/
+RUNS_DIR="${MJTHINKING_ROUND_DIR:-$DIR/runs}"
 mkdir -p "$RUNS_DIR"
+# Clean slate for the round
 rm -f "$RUNS_DIR"/*.json "$RUNS_DIR"/*.txt "$RUNS_DIR/votes.txt"
 
-template_path=""
-if [[ -n "$PROMPT_FILE_OVERRIDE" && -f "$PROMPT_FILE_OVERRIDE" ]]; then
-  template_path="$PROMPT_FILE_OVERRIDE"
-else
-  style_path="$PROMPTS_DIR/${PROMPT_STYLE}.txt"
-  if [[ -f "$style_path" ]]; then
-    template_path="$style_path"
-  elif [[ -f "$DIR/prompt_template.txt" ]]; then
-    template_path="$DIR/prompt_template.txt"
-  fi
-fi
-
-if [[ -z "$template_path" ]]; then
-  echo "[!] Prompt template not found for style '$PROMPT_STYLE'" >&2
-  echo "    Checked: ${PROMPT_FILE_OVERRIDE:-'(PROMPT_FILE unset)'} and $PROMPTS_DIR/${PROMPT_STYLE}.txt" >&2
-  echo "    Ensure prompt templates exist under prompts/" >&2
-  exit 1
-fi
-
-PROMPT="$(cat "$template_path")
+PROMPT="$(cat "$DIR/prompt_template.txt")
 
 Question:
 ${QUESTION}
@@ -71,21 +51,27 @@ for pid in "${pids[@]}"; do wait "$pid"; done
 
 # Extract responses; tally "Final Answer:" lines
 for f in "$RUNS_DIR"/*.json; do jq -r '.response' "$f" > "${f%.json}.txt"; done
-grep -h "Final Answer:" "$RUNS_DIR"/*.txt | sed -E 's/.*Final Answer:[[:space:]]*//' | sed -E 's/[[:space:]]+$//' \
-  | sed -E 's/^\\*\\*([^*]+)\\*\\*$/\\1/' \
-  | sed -E 's/^\\\\boxed\\{(.*)\\}$/\\1/' \
-  | sed -E 's/^\\$([^$]*)\\$$/\\1/' \
-  | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//' \
+# Canonicalize the 'Final Answer:' lines for accurate voting.
+# This single sed command removes the prefix, trims whitespace, and strips common formatting.
+grep -h "Final Answer:" "$RUNS_DIR"/*.txt \
+  | sed -E \
+      -e 's/.*Final Answer:[[:space:]]*//' \
+      -e 's/^\s+|\s+$//g' \
+      -e 's/^\\*\\*([^*]+)\\*\\*$/\1/' \
+      -e 's/^\\boxed\{(.*)\}$/\1/' \
+      -e 's/^\$([^\$]*)\$$/\1/' \
+      -e 's/^\s+|\s+$//g' \
   | sort | uniq -c | sort -nr > "$RUNS_DIR/votes.txt" || true
 
-echo "================== MJTHINKING VOTE TALLY (top 5) =================="
+echo "================== VOTE TALLY (top 5) =================="
 (head -n 5 "$RUNS_DIR/votes.txt" || echo "No 'Final Answer:' lines found") | cat
-echo "=================================================================="
+echo "========================================================"
 
 TOP_ANSWER="$( (head -n 1 "$RUNS_DIR/votes.txt" 2>/dev/null || echo "") | sed 's/^ *[0-9][0-9]* *//' )"
 TOP_COUNT="$( (head -n 1 "$RUNS_DIR/votes.txt" 2>/dev/null | awk '{print $1}') || echo 0 )"
 TOTAL="$CHAINS"
 
+# Write summary for orchestrator to source
 echo "FINAL_ANSWER=$TOP_ANSWER" > "$RUNS_DIR/summary.env"
 echo "FINAL_COUNT=$TOP_COUNT"   >> "$RUNS_DIR/summary.env"
 echo "TOTAL_CHAINS=$TOTAL"      >> "$RUNS_DIR/summary.env"
@@ -97,13 +83,13 @@ if [ -n "$TOP_ANSWER" ]; then
   echo "$TOP_ANSWER"
   echo
   echo "---- ONE TRACE OF REASONING FOR WINNER ----"
-  for t in "$RUNS_DIR"/*.txt; do
-    if grep -Fq "Final Answer: $TOP_ANSWER" "$t"; then
-      cat "$t"
-      break
-    fi
-  done
+  # Use grep's -l flag to find a matching file, then cat it.
+  WINNING_FILE=$(grep -lF "Final Answer: $TOP_ANSWER" "$RUNS_DIR"/*.txt | head -n 1)
+  if [[ -n "$WINNING_FILE" ]]; then
+      cat "$WINNING_FILE"
+  fi
 else
   echo "[!] No final answers detected. Inspect individual traces in $RUNS_DIR/*.txt"
+  # Exit with a special code the orchestrator can check
   exit 2
 fi
