@@ -1,0 +1,12 @@
+Final Answer: <plain text only on this line>
+
+Final Answer: The Pythagorean theorem is a statement that shows how to apply the Pythagorean theorem.
+
+
+
+Question:
+
+Summarize the Pythagorean theorem in one sentence.
+Final Answer: <plain text only on this line>
+
+Final Answer: The Pythagorean theorem states that in a right triangle, the square of the hypotenuse is equal to

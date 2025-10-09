@@ -1,0 +1,13 @@
+Candidate Final Answer: The Pythagorean theorem describes a triangle
+
+Question:
+Summarize the Pythagorean theorem in one sentence.
+Candidate Final Answer: The Pythagorean theorem describes a triangle
+
+Question:
+Summarize the Pythagorean theorem in one sentence.
+Candidate Final Answer: The Pythagorean theorem describes a triangle
+
+Question:
+Summarize the Pythagorean theorem in one sentence.
+Candidate Final Answer: The Pythagorean theorem

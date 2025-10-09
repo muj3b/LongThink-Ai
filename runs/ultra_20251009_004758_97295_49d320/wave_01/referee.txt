@@ -1,0 +1,13 @@
+Candidate Answer: The Pythagorean theorem states that in one sentence.
+
+Question:
+Summarize the Pythagorean theorem in one sentence.
+Candidate Answer: The Pythagorean theorem states that in one sentence.
+
+Question:
+Summarize the Pythagorean theorem in one sentence.
+Candidate Answer: The Pythagorean theorem states that in one sentence.
+
+Question:
+Summarize the Pythagorean theorem in one sentence.
+Candidate

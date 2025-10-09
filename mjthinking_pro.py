@@ -1,8 +1,9 @@
 import os, sys, time, json, math, re, threading, queue, urllib.request, urllib.error, ssl, random, pathlib, collections
 
 API = os.environ.get("API", "http://127.0.0.1:11434")
-MODEL1 = os.environ.get("MODEL", "deepseek-r1:7b")
-MODEL2 = os.environ.get("MODEL_FALLBACK", "")  # e.g., "deepseek-r1:14b" (optional)
+API_KEY = os.environ.get("API_KEY") or os.environ.get("OPENAI_API_KEY")
+MODEL1 = os.environ.get("MODEL", "google/gemma-3-12b")
+MODEL2 = os.environ.get("MODEL_FALLBACK", "")  # e.g., "google/gemma-3-27b" (optional)
 CTX   = int(os.environ.get("CTX", "8192"))
 TEMP  = float(os.environ.get("TEMP", "0.8"))
 TOP_P = float(os.environ.get("TOP_P", "0.95"))
@@ -13,6 +14,12 @@ TIME_BUDGET = int(os.environ.get("TIME_BUDGET", "600"))  # seconds
 REF_TEMP = float(os.environ.get("REF_TEMP", "0.2"))
 BASE_DIR = pathlib.Path(__file__).resolve().parent
 RUNS = BASE_DIR / "runs"; RUNS.mkdir(exist_ok=True)
+API_TYPE = os.environ.get("API_TYPE", "").lower()
+if not API_TYPE:
+    if "/v1" in API or API.endswith(":1234"):
+        API_TYPE = "openai"
+    else:
+        API_TYPE = "ollama"
 
 
 def read_file(p):
@@ -21,40 +28,110 @@ def read_file(p):
 
 PROMPT_TMPL = read_file("prompt_template.txt")
 REFEREE_TMPL = read_file("referee_prompt.txt")
+_FINAL_PAT = re.compile(r'final\s*answer\s*:\s*(.*)', re.IGNORECASE)
+_BOLD_PAT = re.compile(r'^\*\*([^*]+)\*\*$')
+_BOX_PAT = re.compile(r'^\\boxed\{(.*)\}$')
+_DOLLAR_PAT = re.compile(r'^\$([^$]*)\$$')
+
+def _openai_base() -> str:
+    base = API.rstrip("/")
+    if not base.endswith("/v1"):
+        base = f"{base}/v1"
+    return base
 
 
 def post_generate(model, prompt, num_ctx, temperature, top_p, num_predict, seed=None):
-    data = {
-        "model": model,
-        "prompt": prompt,
-        "stream": False,
-        "options": {
-            "num_ctx": num_ctx,
+    if API_TYPE == "openai":
+        payload = {
+            "model": model,
+            "prompt": prompt,
             "temperature": temperature,
             "top_p": top_p,
-            "num_predict": num_predict
+            "max_tokens": num_predict,
+            "n": 1,
+            "stream": False,
         }
-    }
-    if seed is not None:
-        data["options"]["seed"] = seed
-    body = json.dumps(data).encode("utf-8")
-    req = urllib.request.Request(f"{API}/api/generate", data=body, headers={"Content-Type":"application/json"})
-    with urllib.request.urlopen(req, timeout=600) as r:
-        return json.loads(r.read().decode("utf-8"))
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(f"{_openai_base()}/completions", data=data, headers={"Content-Type": "application/json"})
+        if API_KEY:
+            req.add_header("Authorization", f"Bearer {API_KEY}")
+        try:
+            with urllib.request.urlopen(req, timeout=600) as r:
+                raw = json.loads(r.read().decode("utf-8"))
+        except urllib.error.HTTPError as e:
+            body = ""
+            try:
+                body = (e.read() or b"").decode("utf-8", errors="replace")
+            except Exception:
+                body = ""
+            return {"response": "", "error": f"HTTP {e.code}: {body}"[:400], "raw": body or None}
+        except urllib.error.URLError as e:
+            return {"response": "", "error": f"URLError: {e.reason}", "raw": None}
+        choice = (raw.get("choices") or [{}])[0]
+        text = choice.get("text") or choice.get("message", {}).get("content") or raw.get("output_text", "")
+        return {
+            "response": text,
+            "choices": raw.get("choices"),
+            "usage": raw.get("usage"),
+            "raw": raw,
+        }
+    else:
+        data = {
+            "model": model,
+            "prompt": prompt,
+            "stream": False,
+            "options": {
+                "num_ctx": num_ctx,
+                "temperature": temperature,
+                "top_p": top_p,
+                "num_predict": num_predict
+            }
+        }
+        if seed is not None:
+            data["options"]["seed"] = seed
+        body = json.dumps(data).encode("utf-8")
+        req = urllib.request.Request(f"{API}/api/generate", data=body, headers={"Content-Type":"application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=600) as r:
+                return json.loads(r.read().decode("utf-8"))
+        except urllib.error.HTTPError as e:
+            err_body = ""
+            try:
+                err_body = (e.read() or b"").decode("utf-8", errors="replace")
+            except Exception:
+                err_body = ""
+            return {"response": "", "error": f"HTTP {e.code}: {err_body}"[:400], "raw": err_body or None}
+        except urllib.error.URLError as e:
+            return {"response": "", "error": f"URLError: {e.reason}", "raw": None}
 
 
 def extract_final_answer(text: str) -> str:
     # Find "Final Answer:" line; if empty/markdown, use next non-empty line.
     lines = text.splitlines()
-    for i, ln in enumerate(lines):
-        m = re.search(r'final\s*answer\s*:\s*', ln, flags=re.IGNORECASE)
-        if m:
-            val = ln[m.end():]
-            if re.fullmatch(r'[*`_\s-]*', val or '') and i+1 < len(lines):
-                val = lines[i+1]
-            val = re.sub(r'[*`_]', '', val or '').strip()
-            return val
-    return ""
+    answer = ""
+    for idx, ln in enumerate(lines):
+        match = _FINAL_PAT.search(ln)
+        if not match:
+            continue
+        candidate = match.group(1).strip()
+        if not candidate and idx + 1 < len(lines):
+            candidate = lines[idx + 1].strip()
+        answer = candidate.strip()
+    if not answer:
+        return ""
+    bold = _BOLD_PAT.fullmatch(answer)
+    if bold:
+        answer = bold.group(1)
+    boxed = _BOX_PAT.fullmatch(answer)
+    if boxed:
+        answer = boxed.group(1)
+    dollar = _DOLLAR_PAT.fullmatch(answer)
+    if dollar:
+        answer = dollar.group(1)
+    answer = answer.strip()
+    if all(ch in "*`_- " for ch in answer):
+        return ""
+    return answer
 
 
 def canonicalize(ans: str):
@@ -76,7 +153,13 @@ def referee(question: str, candidate: str, model: str):
     prompt = f"{REFEREE_TMPL}\n\nCandidate Final Answer: {candidate}\n\nQuestion:\n{question}\n"
     resp = post_generate(model, prompt, CTX, REF_TEMP, 0.9, 700)
     text = resp.get("response","")
-    pathlib.Path("runs/referee.txt").write_text(text)
+    path = RUNS / "referee.txt"
+    if text:
+        path.write_text(text)
+    else:
+        path.write_text(resp.get("error",""))
+    if resp.get("error"):
+        return ("UNKNOWN", text)
     m = re.search(r'(?i)^\s*verdict\s*[:\-]\s*(pass|fail)\s*$', text, re.M)
     return (m.group(1).upper() if m else "UNKNOWN"), text
 

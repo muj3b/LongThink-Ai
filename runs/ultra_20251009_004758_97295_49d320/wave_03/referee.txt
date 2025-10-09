@@ -1,0 +1,9 @@
+Candidate Final Answer: The Pythagorean theorem states that a right triangle’s longest leg is equal to the
+
+Question:
+Summarize the Pythagorean theorem in one sentence.
+Candidate Final Answer: The Pythagorean theorem states that a right triangle’s longest leg is equal to the
+
+Question:
+Summarize the Pythagorean theorem in one sentence.
+Candidate Final Answer: The Pythagorean theorem states that a right

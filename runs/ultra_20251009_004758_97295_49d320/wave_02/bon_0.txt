@@ -1,0 +1,13 @@
+Final Answer: <plain text only on this line>
+
+
+
+Question:
+Summarize the Pythagorean theorem in one sentence.
+
+Final Answer: The Pythagorean Theorem states that a triangle's area is equal to the sum of the squares of its sides.
+
+Question:
+Summarize the Pythagorean theorem in one sentence.
+
+Final Answer: The Pythagorean Theorem states that a triangle's area is equal

@@ -190,9 +190,12 @@ graph TB
 3. **Launch your first deep-think session**
 
    ```bash
-   MODEL=deepseek-r1:7b TIME_BUDGET=1800 \
+   MODEL=google/gemma-3-12b TIME_BUDGET=1800 \
    python3 mjthinking_ultra.py "Prove that the square root of 2 is irrational."
    ```
+   > The CLI now streams a live progress bar with ETA estimates and writes every wave to `runs/<session_id>/session.jsonl`, so you can resume, monitor, or audit long (2h+) sessions without guesswork.
+   >
+   > Leave `TIME_BUDGET` unset (or set to `auto`) to let MJThinking size the budget to your question; short prompts finish in minutes, proofs/research prompts expand toward the 2 h ceiling. Override with an explicit second count when you need a fixed cap.
 
 ## 💫 Usage Patterns
 
@@ -205,7 +208,7 @@ CHAINS=8 PREDICT=600 ./mjthinking.sh "Explain the quicksort algorithm."
 ### ⚡ Balanced Reasoning (5–10 minutes)
 
 ```bash
-MODEL=deepseek-r1:7b MODEL_FALLBACK=deepseek-r1:14b \
+MODEL=google/gemma-3-12b MODEL_FALLBACK=google/gemma-3-27b \
 CONF=0.7 python3 mjthinking_pro.py "Design a distributed hash table."
 ```
 
@@ -264,9 +267,14 @@ TIME_BUDGET=7200 MODE=HYBRID ./mjthinking_run7b_bg.sh \
 
 | Variable | Default | Purpose | Tuning Tips |
 | --- | --- | --- | --- |
-| `MODEL` | `deepseek-r1:7b` | Primary reasoning model | Use your most capable local Ollama checkpoint |
-| `MODEL_FALLBACK` | _(empty)_ | Secondary model if consensus stalls | Point to `deepseek-r1:14b` or similar |
-| `TIME_BUDGET` | `600` (Pro/Ultra) | Max wall-clock seconds | Increase to unlock deeper reasoning |
+| `MODEL` | `google/gemma-3-12b` | Primary reasoning model | Point at any local or hosted checkpoint (`MODEL=my/model:tag`) |
+| `MODEL_FALLBACK` | _(empty)_ | Secondary model if consensus stalls | e.g. `google/gemma-3-27b` or any heavier backup model |
+| `API` | `http://127.0.0.1:11434` | Inference endpoint base URL | Use Ollama default or switch to `http://127.0.0.1:1234` (LM Studio) / custom hosts |
+| `API_TYPE` | `auto` | API dialect (`ollama` vs `openai`) | Leave unset for auto-detect; force `openai` for LM Studio / OpenAI-compatible servers |
+| `API_KEY` / `OPENAI_API_KEY` | _(empty)_ | Optional bearer token for `API_TYPE=openai` | Set when your server enforces authentication |
+| `TIME_BUDGET` | `auto` | Max wall-clock seconds | Leave on `auto` to adapt to prompt complexity; set explicit seconds when you need a hard cap |
+| `TIME_BUDGET_DEFAULT` | `1800` (Pro) / `3600` (Ultra7B) | Baseline when `TIME_BUDGET=auto` | Raise/lower to bias adaptive runs longer or shorter globally |
+| `TIME_BUDGET_MIN` / `TIME_BUDGET_MAX` | `300 / 7200` (Pro), `600 / 10800` (Ultra7B) | Bounds for adaptive timing | Tighten to keep sessions within resource or SLO constraints |
 | `BATCH` / `CHAINS` | `12` / `10` | Parallel chains per wave/round | Balance throughput vs VRAM and API load |
 | `CONF` | `0.66` | Weighted confidence threshold | Raise for stricter consensus |
 | `MJTHINKING_WEBHOOK_URL` | _(empty)_ | Optional HTTP endpoint to receive JSON progress events | Point to Slack/Discord/web dashboards; omit to disable |
@@ -341,7 +349,7 @@ PREDICT=1600 CHAINS=20 TIME_BUDGET=3600
 - **Adaptive ETA history:** `mjthinking.sh` appends per-round timings to `runs/history_rounds.jsonl`; future sessions blend historical averages into ETA estimates.
 - **Round checkpoints:** Each round saves `round_<n>_best.txt` and `round_<n>_snapshot.json` under the session directory for quick rollbacks.
 - **History analysis:** `python3 mjthinking_history.py --limit 50` summarizes historical round durations.
-- **Connectivity check:** `curl -s ${API:-http://127.0.0.1:11434}/api/tags | jq '.[].name'`
+- **Connectivity check:** `curl -s ${API:-http://127.0.0.1:11434}/api/tags | jq '.[].name'` (Ollama) or `curl -s ${API:-http://127.0.0.1:1234}/v1/models`
 - **Sanity prompt:** `CHAINS=2 PREDICT=200 ./mjthinking_core.sh "Test: what is 2+2?"`
 - **Trace search:** `rg "Final Answer:" runs/*.txt`
 - **Monitor background runs:** `./monitor7b.sh`
@@ -352,8 +360,12 @@ PREDICT=1600 CHAINS=20 TIME_BUDGET=3600
 <summary><strong>🔧 Model Not Found</strong></summary>
 
 ```bash
-ollama list          # Inspect installed models
-ollama pull deepseek-r1:7b
+# Ollama (default)
+ollama list                         # Inspect installed checkpoints
+ollama pull google/gemma-3-12b      # or whichever model tag you need
+
+# OpenAI-compatible servers (LM Studio, vLLM, etc.)
+curl -s ${API:-http://127.0.0.1:1234}/v1/models | jq '.data[].id'
 ```
 
 </details>
@@ -364,7 +376,7 @@ ollama pull deepseek-r1:7b
 ```bash
 PREDICT=600   # Reduce token budget
 BATCH=6       # Fewer concurrent chains
-MODEL_FALLBACK=deepseek-r1:14b   # Escalate when problems stay hard
+MODEL_FALLBACK=google/gemma-3-27b   # Escalate when problems stay hard
 ```
 
 </details>

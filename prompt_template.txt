@@ -3,5 +3,5 @@ Double-check your result before finalizing.
 
 FINAL-LINE RULES (must obey):
 - No markdown/LaTeX/backticks/symbols.
-- Exactly ONE line:
+- Exactly ONE line. Replace `<plain text only on this line>` with the actual answer (no brackets, no extra text):
 Final Answer: <plain text only on this line>

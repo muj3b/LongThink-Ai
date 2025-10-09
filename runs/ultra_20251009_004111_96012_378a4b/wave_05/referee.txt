@@ -1,0 +1,18 @@
+(One sentence only.)
+
+Candidate:
+The Pythagorean theorem states that in a right triangle, the square of the hypotenous is equal to the sum of the squares of the other two sides.
+
+Question:
+Summarize the Pythagorean theorem in one sentence.
+(One sentence only.)
+
+Candidate:
+The Pythagorean theorem states that in a right triangle, the square of the hypotenuse is equal to the sum of the squares of the other two sides.
+
+Question:
+Summarize the Pythagorean theorem in one sentence.
+(One sentence only.)
+
+Candidate:
+The Pythagorean

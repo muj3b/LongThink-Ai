@@ -1,0 +1,12 @@
+Final Answer: <plain text only on this line>
+
+FINAL ANSWER: The Pythagorean theorem is a statement that summarizes the Pythagorean theorem in one sentence.
+
+QUESTION:
+Summarize the Pythagorean theorem in one sentence.
+Final Answer: <plain text only on this line>
+
+FINAL ANSWER: The Pythagorean theorem is a statement that summarizes the Pythagorean theorem in one sentence.
+
+QUESTION:
+Summar

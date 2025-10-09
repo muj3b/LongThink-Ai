@@ -1,0 +1,19 @@
+{
+  "session_id": "ultra_20251009_004111_96012_378a4b",
+  "question": "Summarize the Pythagorean theorem in one sentence.",
+  "start_timestamp": 1759988471,
+  "parameters": {
+    "MODEL": "google/gemma-3-12b",
+    "MODEL_FALLBACK": "",
+    "MODE": "BON",
+    "TIME_BUDGET": 180,
+    "CHAINS": 2,
+    "PLANS": 3,
+    "EXPAND": 2,
+    "CONF": 0.66,
+    "PREDICT": 120,
+    "CTX": 4096,
+    "TEMP": 0.8,
+    "TOP_P": 0.95
+  }
+}

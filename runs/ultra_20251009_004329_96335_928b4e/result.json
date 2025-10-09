@@ -1,0 +1,9 @@
+{
+  "session_id": "ultra_20251009_004329_96335_928b4e",
+  "question": "Summarize the Pythagorean theorem in one sentence.",
+  "final_answer": "<plain text only on this line>",
+  "confidence": 0.5,
+  "model": "google/gemma-3-12b",
+  "time_budget_seconds": 60,
+  "completed_at": 1759988679
+}

@@ -1,0 +1,9 @@
+Candidate Answer: The Pythagorean Theorem states that a triangle's area is equal to the square root of the hypotenuse.
+
+Question:
+Summarize the Pythagorean theorem in one sentence.
+Candidate Answer: The Pythagorean Theorem states that a triangle's area is equal to the square root of the hypotenuse.
+
+Question:
+Summarize the Pythagorean theorem in one sentence.
+Candidate

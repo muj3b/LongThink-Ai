@@ -3,14 +3,14 @@
 # Verified against:
 # - Ollama API /api/generate + stream:false + options (num_ctx, temperature, top_p, num_predict, seed)
 # - Homebrew path/prefix
-# - deepseek-r1 availability in Ollama library
+# - google/gemma-3-12b availability in Ollama library
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # ---- 0) Tunables (safe defaults for an ~18 GB RAM Mac; override by exporting before run) ----
-MODEL="${MODEL:-deepseek-r1:7b}"   # small reasoning model available via Ollama library
+MODEL="${MODEL:-google/gemma-3-12b}"   # small reasoning model available via Ollama library
 CTX="${CTX:-4096}"                 # context tokens (bump to 8192 if you like)
 TEMP="${TEMP:-0.8}"                # sampling temperature
 TOP_P="${TOP_P:-0.95}"             # nucleus sampling
@@ -112,7 +112,7 @@ CHAINS_IN="${2:-}"
 [ -z "$QUESTION" ] && { echo "Usage: $0 \"YOUR QUESTION\" [CHAINS]"; exit 1; }
 
 CHAINS="${CHAINS_IN:-${CHAINS:-10}}"
-MODEL="${MODEL:-deepseek-r1:7b}"
+MODEL="${MODEL:-google/gemma-3-12b}"
 CTX="${CTX:-4096}"
 TEMP="${TEMP:-0.8}"
 TOP_P="${TOP_P:-0.95}"
@@ -201,7 +201,7 @@ QUESTION="${1:-}"
 CANDIDATE="${2:-}"
 [ -z "$QUESTION" ] && { echo "Usage: $0 \"QUESTION\" \"CANDIDATE_FINAL_ANSWER\""; exit 1; }
 
-MODEL="${MODEL:-deepseek-r1:7b}"
+MODEL="${MODEL:-google/gemma-3-12b}"
 CTX="${CTX:-4096}"
 TEMP="${TEMP:-0.2}"      # low temp for verifier stability
 TOP_P="${TOP_P:-0.9}"

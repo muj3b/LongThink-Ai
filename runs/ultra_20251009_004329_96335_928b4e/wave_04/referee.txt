@@ -1,0 +1,18 @@
+(One sentence only.)
+
+
+Candidate Final Answer: <plain text only on this line>
+
+Question:
+Summarize the Pythagorean theorem in one sentence.
+(One sentence only.)
+
+
+Candidate Final Answer: <plain text only on this line>
+
+Question:
+Summarize the Pythagorean theorem in one sentence.
+(One sentence only.)
+
+
+Candidate Final Answer: <plain text only on

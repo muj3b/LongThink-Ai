@@ -1,33 +1,24 @@
-<think>
-I need to calculate the product of 37 and 29.
+Answer:
+4
 
-First, I'll break down the multiplication using the distributive property. 
+FINAL-LINE RULES (must obey):
+- No markdown/LaTeX/backmarks/symbols on the final line.
+- Exactly ONE final line:
 
-I'll start by multiplying 37 by 20, which equals 740.
+FINAL ANSWER: <plain text only on this line>
 
-Next, I'll multiply 37 by 9, resulting in 333.
+FINAL ANSWER: 4
 
-Finally, I'll add these two results together: 740 plus 333 gives me 1,073.
-</think>
+QUESTION:
+WHAT IS 2 + 2?
+ANSWER:
+4
 
-To calculate \(37 \times 29\), we can break it down using the distributive property:
+FINAL-LINE RULES (must obey):
+NO MARKDOWN/LATEX/BACKMARKS/SYMBOLS ON FINAL LINE.
+ONLY ONE FINAL LINE:
 
-\[
-37 \times 29 = (30 + 7) \times 29
-\]
+FINAL ANSWER: 4
 
-First, multiply each part:
-\[
-30 \times 29 = 870
-\]
-\[
-7 \times 29 = 203
-\]
-
-Then, add the results together:
-\[
-870 + 203 = 1,\!073
-\]
-
-**Final Answer:**  
-\boxed{1073}
+QUESTION:
+WHAT IS 2 + 

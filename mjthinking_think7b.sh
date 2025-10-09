@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$DIR"
-TIME_BUDGET="${TIME_BUDGET:-1800}" \
+TIME_BUDGET="${TIME_BUDGET:-auto}" \
 BATCH="${BATCH:-12}" \
 PREDICT="${PREDICT:-1600}" \
 CTX="${CTX:-8192}" \
