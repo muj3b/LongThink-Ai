@@ -199,9 +199,19 @@ def sample_wave(question, model, wave_idx, n):
         prompt = f"{PROMPT_TMPL}\n\nQuestion:\n{question}\n"
         try:
             resp = post_generate(model, prompt, CTX, TEMP, TOP_P, PREDICT, seed)
-            text = resp.get("response","")
-            (RUNS/f"{wave_idx}_{i}.txt").write_text(text)
-            ans = extract_final_answer(text)
+        except Exception as exc:
+            with lock:
+                out.append(("", None, ""))
+            (RUNS/f"{wave_idx}_{i}_error.txt").write_text(f"generation failed: {exc}")
+            return
+        text = resp.get("response","")
+        path = RUNS/f"{wave_idx}_{i}.txt"
+        path.write_text(text or resp.get("error",""))
+        if resp.get("error"):
+            with lock:
+                out.append(("", None, ""))
+            return
+        ans = extract_final_answer(text)
         except Exception as e:
             text, ans = f"[ERROR] {e}", ""
         tcanon, ncanon = canonicalize(ans)
