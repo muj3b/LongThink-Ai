@@ -72,11 +72,11 @@ def canonicalize(ans: str):
         return (ans.strip().lower(), None)
 
 
-def referee(question: str, candidate: str, model: str):
+def referee(question: str, candidate: str, model: str, session_dir: pathlib.Path):
     prompt = f"{REFEREE_TMPL}\n\nCandidate Final Answer: {candidate}\n\nQuestion:\n{question}\n"
     resp = post_generate(model, prompt, CTX, REF_TEMP, 0.9, 700)
     text = resp.get("response","")
-    pathlib.Path("runs/referee.txt").write_text(text)
+    (session_dir / "referee.txt").write_text(text)
     m = re.search(r'(?i)^\s*verdict\s*[:\-]\s*(pass|fail)\s*$', text, re.M)
     return (m.group(1).upper() if m else "UNKNOWN"), text
 
@@ -106,7 +106,7 @@ def vote_tally(canon_pairs):
     return ("TXT", leader[0], len(leader[1]), sum(len(v) for v in by_txt.values()), by_txt)
 
 
-def sample_wave(question, model, wave_idx, n):
+def sample_wave(question, model, wave_idx, n, session_dir: pathlib.Path):
     out = []
     threads = []
     lock = threading.Lock()
@@ -117,7 +117,7 @@ def sample_wave(question, model, wave_idx, n):
         try:
             resp = post_generate(model, prompt, CTX, TEMP, TOP_P, PREDICT, seed)
             text = resp.get("response","")
-            (RUNS/f"{wave_idx}_{i}.txt").write_text(text)
+            (session_dir / f"wave_{wave_idx}_chain_{i}.txt").write_text(text)
             ans = extract_final_answer(text)
         except Exception as e:
             text, ans = f"[ERROR] {e}", ""
@@ -137,6 +137,11 @@ def sample_wave(question, model, wave_idx, n):
 
 def run(question):
     start = time.time()
+    session_id = f"pro_{time.strftime('%Y%m%d_%H%M%S')}"
+    session_dir = RUNS / session_id
+    session_dir.mkdir(exist_ok=True)
+    print(f"[*] Starting session: {session_id}. Traces will be saved in {session_dir}")
+
     model = MODEL1
     wave = 0
     weighted_counts = collections.Counter()
@@ -148,13 +153,13 @@ def run(question):
             break
         wave += 1
         # sample
-        pairs = sample_wave(question, model, wave, BATCH)
+        pairs = sample_wave(question, model, wave, BATCH, session_dir)
         # vote
         keytype, leader_key, leader_cnt, total_cnt, map_ = vote_tally(pairs)
         # current leader raw example
         leader_raw = (map_.get(leader_key) or [""])[0]
         # referee
-        verdict, rtext = referee(question, leader_key if keytype == "NUM" else leader_raw, model)
+        verdict, rtext = referee(question, leader_key if keytype == "NUM" else leader_raw, model, session_dir)
         # weight: votes + 0.5 bonus if referee PASS
         weight = leader_cnt + (0.5 if verdict == "PASS" else 0.0)
         weighted_counts[(keytype, leader_key)] += weight
@@ -203,5 +208,5 @@ if __name__ == "__main__":
     print("\n================== MJThinking PRO RESULT ==================")
     print(f"Final Answer: {fin}")
     print(f"Confidence (weighted): {conf:.2%}   Model: {used_model}")
-    print("Traces saved in ./runs/")
+    print(f"Traces saved in {session_dir}")
     print("===========================================================\n")

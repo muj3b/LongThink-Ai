@@ -47,12 +47,12 @@ def canonicalize(ans: str):
     js = json.loads(out)
     return js["text"], js["num"]
 
-def referee(question: str, candidate_text_or_num, model: str):
+def referee(question: str, candidate_text_or_num, model: str, session_dir: pathlib.Path):
     cand = str(candidate_text_or_num)
     prompt = f"{REFEREE_TMPL}\n\nCandidate Final Answer: {cand}\n\nQuestion:\n{question}\n"
     resp = post_generate(model, prompt, CTX, 0.2, 0.9, min(800, PREDICT))
     text = resp.get("response","")
-    pathlib.Path("runs/referee.txt").write_text(text)
+    (session_dir / "referee.txt").write_text(text)
     m = re.search(r'(?i)^\s*verdict\s*[:\-]\s*(pass|fail)\s*$', text, re.M)
     return (m.group(1).upper() if m else "UNKNOWN")
 
@@ -78,7 +78,7 @@ def vote_numeric_or_text(finals):
     leader_key, lst = max(bucket.items(), key=lambda kv: len(kv[1]))
     return ("TXT", leader_key, lst, len(lst), len(finals))
 
-def bon_wave(question, model, wave_idx, n):
+def bon_wave(question, model, wave_idx, n, session_dir: pathlib.Path):
     finals=[]
     threads=[]
     lock=threading.Lock()
@@ -87,7 +87,7 @@ def bon_wave(question, model, wave_idx, n):
         prompt=f"{PROMPT_TMPL}\n\nQuestion:\n{question}\n"
         try:
             resp=post_generate(model, prompt, CTX, TEMP, TOP_P, PREDICT, seed)
-            txt=resp.get("response",""); (RUNS/f"{wave}_bon_{i}.txt").write_text(txt)
+            txt=resp.get("response",""); (session_dir/f"wave_{wave_idx}_bon_chain_{i}.txt").write_text(txt)
             finals.append(extract_final_answer(txt))
         except Exception as e:
             finals.append("")
@@ -96,11 +96,11 @@ def bon_wave(question, model, wave_idx, n):
     for t in threads: t.join()
     return finals
 
-def tot_wave(question, model, wave_idx, plans, expand):
+def tot_wave(question, model, wave_idx, plans, expand, session_dir: pathlib.Path):
     # propose plans
     plan_prompt = TOT_PLAN_TMPL.replace("{QUESTION}", question).replace("N", str(plans))
     plan_text = post_generate(model, plan_prompt, CTX, TEMP, TOP_P, min(800,PREDICT)).get("response","")
-    (RUNS/f"{wave_idx}_plans.txt").write_text(plan_text)
+    (session_dir/f"wave_{wave_idx}_plans.txt").write_text(plan_text)
     # extract plans
     blocks = re.findall(r'(?i)plan\s+(\d+)\s*:\s*(.*?)(?=(?i)plan\s+\d+\s*:|$)', plan_text, re.S)
     if not blocks: return []
@@ -123,40 +123,69 @@ def tot_wave(question, model, wave_idx, plans, expand):
         for k in range(expand):
             attempt_prompt = TOT_ATTEMPT_TMPL.replace("{PLAN}", plan).replace("{QUESTION}", question)
             txt = post_generate(model, attempt_prompt, CTX, TEMP, TOP_P, PREDICT).get("response","")
-            (RUNS/f"{wave_idx}_tot_{pid}_{k}.txt").write_text(txt)
+            (session_dir/f"wave_{wave_idx}_tot_plan_{pid}_attempt_{k}.txt").write_text(txt)
             finals.append(extract_final_answer(txt))
     return finals
 
 def run(question):
-    start=time.time(); model=MODEL1; weights={}
+    start=time.time()
+    session_id = f"ultra_{time.strftime('%Y%m%d_%H%M%S')}"
+    session_dir = RUNS / session_id
+    session_dir.mkdir(exist_ok=True)
+    print(f"[*] Starting session: {session_id}. Traces will be saved in {session_dir}")
+
+    model=MODEL1
+    weights={}
+    wave = 0
     while True:
         left=TIME_BUDGET - int(time.time()-start)
         if left<=0: break
-        wave=len(list(RUNS.glob("*_bon_*"))) + len(list(RUNS.glob("*_tot_*"))) + 1
-        if MODE=="BON": finals = bon_wave(question, model, wave, BATCH)
-        elif MODE=="TOT": finals = tot_wave(question, model, wave, PLANS, EXPAND)
+        wave += 1
+
+        current_mode = MODE.upper()
+        if current_mode == "HYBRID":
+            current_mode = "BON" if wave % 2 == 1 else "TOT"
+
+        if current_mode == "BON":
+            finals = bon_wave(question, model, wave, BATCH, session_dir)
+        elif current_mode == "TOT":
+            finals = tot_wave(question, model, wave, PLANS, EXPAND, session_dir)
         else:
-            finals = bon_wave(question, model, wave, BATCH) if wave%2==1 else tot_wave(question, model, wave, PLANS, EXPAND)
+            print(f"[!] Invalid mode '{MODE}' in wave {wave}. Defaulting to BON.", file=sys.stderr)
+            finals = bon_wave(question, model, wave, BATCH, session_dir)
+
         if not finals: continue
         keytype, leader_key, leader_samples, c, t = vote_numeric_or_text(finals)
         candidate = leader_key if keytype=="NUM" else leader_samples[0]
-        verdict = referee(question, candidate, model)
+        verdict = referee(question, candidate, model, session_dir)
         gain = c + (0.5 if verdict=="PASS" else 0.0)
-        weights[(keytype,leader_key,model)] = weights.get((keytype,leader_key,model),0.0) + gain
-        # confidence
+        # The key for weights should be stable and not include the model, which can change
+        weights_key = (keytype, leader_key)
+        weights[weights_key] = weights.get(weights_key, 0.0) + gain
+
+        # Confidence
         best_key, best_w = max(weights.items(), key=lambda kv: kv[1])
         tot_w = sum(weights.values())
-        conf = best_w/ tot_w if tot_w>0 else 0.0
-        print(f"[wave {wave:02d} | {MODE} | model={model}] vote={c}/{t} verdict={verdict} conf={conf:.2%} left={left}s")
-        if conf>=CONF and verdict=="PASS":
-            final = best_key[0][1] if best_key[0][0]=="NUM" else candidate
+        conf = best_w / tot_w if tot_w > 0 else 0.0
+
+        print(f"[wave {wave:02d} | {current_mode} | model={model}] vote={c}/{t} verdict={verdict} conf={conf:.2%} left={left}s")
+
+        if conf >= CONF and verdict == "PASS":
+            final_key_type, final_key_val = best_key
+            final = final_key_val if final_key_type == "NUM" else candidate
             return final, conf, model
-        if model==MODEL1 and MODEL2 and wave>=2: model=MODEL2
-        if time.time()-start>TIME_BUDGET: break
+
+        if model == MODEL1 and MODEL2 and wave >= 2:
+            model = MODEL2
+
+        if time.time() - start > TIME_BUDGET: break
+
     if not weights: return "UNKNOWN", 0.0, model
+
     best_key, best_w = max(weights.items(), key=lambda kv: kv[1])
-    final = best_key[0][1] if best_key[0][0]=="NUM" else "UNKNOWN"
-    return final, best_w/sum(weights.values()), best_key[0][2]
+    final_key_type, final_key_val = best_key
+    final = final_key_val
+    return final, best_w / sum(weights.values()), model
 
 if __name__=="__main__":
     if len(sys.argv)<2:
@@ -166,5 +195,5 @@ if __name__=="__main__":
     print("\n================== MJThinking ULTRA RESULT ==================")
     print(f"Final Answer: {fin}")
     print(f"Confidence (weighted): {conf:.2%}   Model: {used}")
-    print("Traces saved in ./runs/")
+    print("See session directory logged at startup for traces.")
     print("===========================================================\n")
