@@ -191,8 +191,8 @@ def vote_tally(canon_pairs):
 
 def sample_wave(question, model, wave_idx, n):
     out = []
-    threads = []
     lock = threading.Lock()
+    errors = []
 
     def one(i):
         seed = random.randint(0, 2**31-1)
@@ -200,31 +200,31 @@ def sample_wave(question, model, wave_idx, n):
         try:
             resp = post_generate(model, prompt, CTX, TEMP, TOP_P, PREDICT, seed)
         except Exception as exc:
+            err = f"generation failed: {exc}"
+            (RUNS / f"{wave_idx}_{i}_error.txt").write_text(err)
             with lock:
-                out.append(("", None, ""))
-            (RUNS/f"{wave_idx}_{i}_error.txt").write_text(f"generation failed: {exc}")
+                errors.append(err)
             return
-        text = resp.get("response","")
-        path = RUNS/f"{wave_idx}_{i}.txt"
-        path.write_text(text or resp.get("error",""))
-        if resp.get("error"):
+        text = resp.get("response", "")
+        err = resp.get("error")
+        path = RUNS / f"{wave_idx}_{i}.txt"
+        path.write_text(text or err or "")
+        if err:
             with lock:
-                out.append(("", None, ""))
+                errors.append(err)
             return
         ans = extract_final_answer(text)
-        except Exception as e:
-            text, ans = f"[ERROR] {e}", ""
         tcanon, ncanon = canonicalize(ans)
         with lock:
             out.append((tcanon, ncanon, ans))
 
-    for i in range(n):
-        th = threading.Thread(target=one, args=(i,))
-        th.daemon = True
+    threads = [threading.Thread(target=one, args=(i,), daemon=True) for i in range(n)]
+    for th in threads:
         th.start()
-        threads.append(th)
     for th in threads:
         th.join()
+    if not out and errors:
+        raise RuntimeError(f"All chains failed: {errors[0]}")
     return out
 
 
