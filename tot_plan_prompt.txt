@@ -1,5 +1,5 @@
 You will propose solution PLANS for the QUESTION. Requirements:
-- Output exactly N plans, labeled: PLAN 1:, PLAN 2:, … PLAN N:
+- Output exactly {NUM_PLANS} plans, labeled: PLAN 1:, PLAN 2:, … PLAN {NUM_PLANS}:
 - Each plan = 2–6 bullet steps, concrete and distinct.
 - No final answer here.
 

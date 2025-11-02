@@ -44,6 +44,7 @@ REFEREE_TMPL = (BASE_DIR/"referee_prompt.txt").read_text()
 TOT_PLAN_TMPL = (BASE_DIR/"tot_plan_prompt.txt").read_text()
 TOT_ATTEMPT_TMPL = (BASE_DIR/"tot_attempt_prompt.txt").read_text()
 TOT_EVAL_TMPL = (BASE_DIR/"tot_evaluate_prompt.txt").read_text()
+PLAN_BLOCK_RE = re.compile(r'plan\s+(\d+)\s*:\s*(.*?)(?=plan\s+\d+\s*:|$)', re.IGNORECASE | re.S)
 _FINAL_PAT = re.compile(r'final\s*answer\s*:\s*(.*)', re.IGNORECASE)
 _BOLD_PAT = re.compile(r'^\*\*([^*]+)\*\*$')
 _BOX_PAT = re.compile(r'^\\boxed\{(.*)\}$')
@@ -262,10 +263,10 @@ def bon_wave(question, wave_idx, n):
     return finals
 
 def tot_wave(question, wave_idx, plans, expand):
-    plan_prompt = TOT_PLAN_TMPL.replace("{QUESTION}", question).replace("N", str(plans))
+    plan_prompt = TOT_PLAN_TMPL.replace("{QUESTION}", question).replace("{NUM_PLANS}", str(plans))
     plan_text = post_generate(plan_prompt, num_predict=min(800,PREDICT))
     (session_wave_dir(wave_idx)/"plans.txt").write_text(plan_text)
-    blocks = re.findall(r'(?i)plan\s+(\d+)\s*:\s*(.*?)(?=(?i)plan\s+\d+\s*:|$)', plan_text, re.S)
+    blocks = PLAN_BLOCK_RE.findall(plan_text)
     if not blocks: return []
     plan_map = {int(num): body.strip() for num,body in blocks}
     joined = "\n\n".join([f"PLAN {k}:\n{v}" for k,v in sorted(plan_map.items())])

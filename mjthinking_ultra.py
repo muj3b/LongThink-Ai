@@ -43,6 +43,7 @@ REFEREE_TMPL = pathlib.Path("referee_prompt.txt").read_text()
 TOT_PLAN_TMPL = pathlib.Path("tot_plan_prompt.txt").read_text()
 TOT_ATTEMPT_TMPL = pathlib.Path("tot_attempt_prompt.txt").read_text()
 TOT_EVAL_TMPL = pathlib.Path("tot_evaluate_prompt.txt").read_text()
+PLAN_BLOCK_RE = re.compile(r'plan\s+(\d+)\s*:\s*(.*?)(?=plan\s+\d+\s*:|$)', re.IGNORECASE | re.S)
 
 PROGRESS_WIDTH = int(os.environ.get("PROGRESS_WIDTH","28"))
 _ADAPT_KEYWORDS = [
@@ -319,7 +320,7 @@ def bon_wave(question, model, wave_idx, n):
 
 def tot_wave(question, model, wave_idx, plans, expand):
     # propose plans
-    plan_prompt = TOT_PLAN_TMPL.replace("{QUESTION}", question).replace("N", str(plans))
+    plan_prompt = TOT_PLAN_TMPL.replace("{QUESTION}", question).replace("{NUM_PLANS}", str(plans))
     plan_resp = post_generate(model, plan_prompt, CTX, TEMP, TOP_P, min(800,PREDICT))
     plan_text = plan_resp.get("response","")
     plan_path = session_wave_dir(wave_idx)/"plans.txt"
@@ -330,7 +331,7 @@ def tot_wave(question, model, wave_idx, plans, expand):
     if plan_resp.get("error"):
         return []
     # extract plans
-    blocks = re.findall(r'(?i)plan\s+(\d+)\s*:\s*(.*?)(?=(?i)plan\s+\d+\s*:|$)', plan_text, re.S)
+    blocks = PLAN_BLOCK_RE.findall(plan_text)
     if not blocks: return []
     plan_map={}
     for num, body in blocks:
