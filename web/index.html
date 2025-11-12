@@ -1305,6 +1305,15 @@ API_TYPE=openai"></textarea>
           ['target conf', manifest.parameters?.TARGET_CONF ?? '—'],
           ['auto extend', manifest.parameters?.AUTO_EXTEND_ROUNDS ?? '—'],
         ];
+        const lastRound = Array.isArray(manifest.rounds) && manifest.rounds.length ? manifest.rounds[manifest.rounds.length - 1] : null;
+        const etaSeconds = lastRound?.eta_seconds ?? null;
+        const timeBudget = manifest.parameters?.TIME_BUDGET ? Number(manifest.parameters.TIME_BUDGET) : null;
+        const elapsedSeconds = lastRound?.elapsed_seconds ?? completion.elapsed_seconds ?? null;
+        if (etaSeconds !== null && etaSeconds >= 0) metrics.unshift(['eta', formatDuration(etaSeconds)]);
+        if (timeBudget && elapsedSeconds !== null && elapsedSeconds >= 0) {
+          const pct = Math.min(100, Math.max(0, Math.round((elapsedSeconds * 100) / timeBudget)));
+          metrics.unshift(['progress', `${pct}%`]);
+        }
         metrics.forEach(([label, value], index) => {
           const card = document.createElement('div');
           card.className = 'metric-card';
@@ -1446,7 +1455,7 @@ API_TYPE=openai"></textarea>
       function scheduleRefresh() {
         if (state.timer) clearInterval(state.timer);
         if (state.autoRefresh) {
-          state.timer = setInterval(refreshAll, 8000);
+          state.timer = setInterval(refreshAll, 3000);
         }
       }
 

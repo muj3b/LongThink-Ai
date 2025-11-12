@@ -1,4 +1,5 @@
 import os, sys, time, json, re, random, uuid, pathlib, threading, urllib.request, urllib.error
+from adapters.model_adapter import generate as adapter_generate
 
 API = os.environ.get("API","http://127.0.0.1:11434")
 API_KEY = os.environ.get("API_KEY") or os.environ.get("OPENAI_API_KEY")
@@ -146,47 +147,7 @@ def _openai_base() -> str:
 def post_generate(prompt, num_predict, temperature=None, seed=None):
     if temperature is None:
         temperature = TEMP
-    timeout = max(600, num_predict * 2)
-    if API_TYPE == "openai":
-        payload = {
-            "model": MODEL,
-            "prompt": prompt,
-            "temperature": temperature,
-            "top_p": TOP_P,
-            "max_tokens": num_predict,
-            "n": 1,
-            "stream": False,
-        }
-        data = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(f"{_openai_base()}/completions", data=data, headers={"Content-Type":"application/json"})
-        if API_KEY:
-            req.add_header("Authorization", f"Bearer {API_KEY}")
-        try:
-            with urllib.request.urlopen(req, timeout=timeout) as r:
-                raw = json.loads(r.read().decode("utf-8"))
-        except urllib.error.HTTPError as e:
-            try:
-                msg = (e.read() or b"").decode("utf-8", errors="replace")
-            except Exception:
-                msg = ""
-            return ""
-        except urllib.error.URLError:
-            return ""
-        choice = (raw.get("choices") or [{}])[0]
-        return choice.get("text") or choice.get("message", {}).get("content") or raw.get("output_text", "")
-    else:
-        opts = {"num_ctx": CTX, "top_p": TOP_P, "num_predict": num_predict, "temperature": temperature}
-        if seed is not None:
-            opts["seed"] = seed
-        body = json.dumps({"model": MODEL, "prompt": prompt, "stream": False, "options": opts}).encode("utf-8")
-        req = urllib.request.Request(f"{API}/api/generate", data=body, headers={"Content-Type":"application/json"})
-        try:
-            with urllib.request.urlopen(req, timeout=timeout) as r:
-                return json.loads(r.read().decode("utf-8")).get("response","")
-        except urllib.error.HTTPError:
-            return ""
-        except urllib.error.URLError:
-            return ""
+    return adapter_generate(MODEL, prompt, CTX, temperature, TOP_P, num_predict, API, API_TYPE, API_KEY, seed)
 
 def extract_final_answer(full: str) -> str:
     if not full:
@@ -226,8 +187,12 @@ def canonicalize(ans: str):
 
 def referee(question: str, candidate: str, wave_idx: int):
     prompt = f"{REFEREE_TMPL}\n\nCandidate Final Answer: {candidate}\n\nQuestion:\n{question}\n"
-    text = post_generate(prompt, num_predict=min(800,PREDICT), temperature=0.2)
-    (session_wave_dir(wave_idx)/"referee.txt").write_text(text)
+    resp = post_generate(prompt, num_predict=min(800,PREDICT), temperature=0.2)
+    text = resp.get("response", "")
+    err = resp.get("error")
+    (session_wave_dir(wave_idx)/"referee.txt").write_text(text or err or "")
+    if err:
+        return "UNKNOWN"
     m = re.search(r'(?i)^\s*verdict\s*[:\-]\s*(pass|fail)\s*$', text, re.M)
     return (m.group(1).upper() if m else "UNKNOWN")
 
@@ -254,8 +219,12 @@ def bon_wave(question, wave_idx, n):
     def one(i):
         seed = random.randint(0,2**31-1)
         prompt = f"{PROMPT_TMPL}\n\nQuestion:\n{question}\n"
-        txt = post_generate(prompt, num_predict=PREDICT, seed=seed)
-        (session_wave_dir(wave_idx)/f"bon_{i}.txt").write_text(txt)
+        resp = post_generate(prompt, num_predict=PREDICT, seed=seed)
+        txt = resp.get("response", "")
+        err = resp.get("error")
+        (session_wave_dir(wave_idx)/f"bon_{i}.txt").write_text(txt or err or "")
+        if err:
+            return
         finals.append(extract_final_answer(txt))
     for i in range(n):
         t=threading.Thread(target=one,args=(i,)); t.daemon=True; t.start(); threads.append(t)
@@ -264,15 +233,19 @@ def bon_wave(question, wave_idx, n):
 
 def tot_wave(question, wave_idx, plans, expand):
     plan_prompt = TOT_PLAN_TMPL.replace("{QUESTION}", question).replace("{NUM_PLANS}", str(plans))
-    plan_text = post_generate(plan_prompt, num_predict=min(800,PREDICT))
-    (session_wave_dir(wave_idx)/"plans.txt").write_text(plan_text)
+    plan_resp = post_generate(plan_prompt, num_predict=min(800,PREDICT))
+    plan_text = plan_resp.get("response", "")
+    (session_wave_dir(wave_idx)/"plans.txt").write_text(plan_text or plan_resp.get("error",""))
+    if plan_resp.get("error"):
+        return []
     blocks = PLAN_BLOCK_RE.findall(plan_text)
     if not blocks: return []
     plan_map = {int(num): body.strip() for num,body in blocks}
     joined = "\n\n".join([f"PLAN {k}:\n{v}" for k,v in sorted(plan_map.items())])
     eval_prompt = TOT_EVAL_TMPL.replace("{PLANS}", joined).replace("{QUESTION}", question)
     try:
-        jtxt = post_generate(eval_prompt, num_predict=600, temperature=0.2)
+        jresp = post_generate(eval_prompt, num_predict=600, temperature=0.2)
+        jtxt = jresp.get("response", "")
         scores = json.loads(re.findall(r'\[[\s\S]*\]', jtxt)[0])
         order = [int(d["plan"]) for d in sorted(scores, key=lambda d: -float(d.get("score",0)))]
     except Exception:
@@ -282,9 +255,12 @@ def tot_wave(question, wave_idx, plans, expand):
         plan = plan_map[pid]
         for k in range(expand):
             attempt_prompt = TOT_ATTEMPT_TMPL.replace("{PLAN}", plan).replace("{QUESTION}", question)
-            txt = post_generate(attempt_prompt, num_predict=PREDICT)
-            (session_wave_dir(wave_idx)/f"tot_{pid}_{k}.txt").write_text(txt)
-            finals.append(extract_final_answer(txt))
+            aresp = post_generate(attempt_prompt, num_predict=PREDICT)
+            atxt = aresp.get("response", "")
+            (session_wave_dir(wave_idx)/f"tot_{pid}_{k}.txt").write_text(atxt or aresp.get("error",""))
+            if aresp.get("error"):
+                continue
+            finals.append(extract_final_answer(atxt))
     return finals
 
 def run(question):
@@ -328,6 +304,7 @@ def run(question):
             "round_complete",
             session_id=SESSION_ID,
             round=wave,
+            mode=MODE,
             majority_count=c,
             majority_total=t,
             referee_verdict=verdict,

@@ -1,4 +1,5 @@
 import os, sys, time, json, re, random, uuid, pathlib, threading, urllib.request, urllib.error
+from adapters.model_adapter import generate as adapter_generate
 
 API = os.environ.get("API","http://127.0.0.1:11434")
 API_KEY = os.environ.get("API_KEY") or os.environ.get("OPENAI_API_KEY")
@@ -140,69 +141,7 @@ def _openai_base() -> str:
     return base
 
 def post_generate(model, prompt, num_ctx, temperature, top_p, num_predict, seed=None):
-    timeout = max(600, num_predict * 2)
-    if API_TYPE == "openai":
-        payload = {
-            "model": model,
-            "prompt": prompt,
-            "temperature": temperature,
-            "top_p": top_p,
-            "max_tokens": num_predict,
-            "n": 1,
-            "stream": False,
-        }
-        data = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(f"{_openai_base()}/completions", data=data, headers={"Content-Type": "application/json"})
-        if API_KEY:
-            req.add_header("Authorization", f"Bearer {API_KEY}")
-        try:
-            with urllib.request.urlopen(req, timeout=timeout) as r:
-                raw = json.loads(r.read().decode("utf-8"))
-        except urllib.error.HTTPError as e:
-            body = ""
-            try:
-                body = (e.read() or b"").decode("utf-8", errors="replace")
-            except Exception:
-                body = ""
-            return {"response": "", "error": f"HTTP {e.code}: {body}"[:400], "raw": body or None}
-        except urllib.error.URLError as e:
-            return {"response": "", "error": f"URLError: {e.reason}", "raw": None}
-        choice = (raw.get("choices") or [{}])[0]
-        text = choice.get("text") or choice.get("message", {}).get("content") or raw.get("output_text", "")
-        return {
-            "response": text,
-            "choices": raw.get("choices"),
-            "usage": raw.get("usage"),
-            "raw": raw,
-        }
-    else:
-        data = {
-            "model": model,
-            "prompt": prompt,
-            "stream": False,
-            "options": {
-                "num_ctx": num_ctx,
-                "temperature": temperature,
-                "top_p": top_p,
-                "num_predict": num_predict,
-            },
-        }
-        if seed is not None:
-            data["options"]["seed"] = seed
-        body = json.dumps(data).encode("utf-8")
-        req = urllib.request.Request(f"{API}/api/generate", data=body, headers={"Content-Type": "application/json"})
-        try:
-            with urllib.request.urlopen(req, timeout=timeout) as r:
-                return json.loads(r.read().decode("utf-8"))
-        except urllib.error.HTTPError as e:
-            err_body = ""
-            try:
-                err_body = (e.read() or b"").decode("utf-8", errors="replace")
-            except Exception:
-                err_body = ""
-            return {"response": "", "error": f"HTTP {e.code}: {err_body}"[:400], "raw": err_body or None}
-        except urllib.error.URLError as e:
-            return {"response": "", "error": f"URLError: {e.reason}", "raw": None}
+    return adapter_generate(model, prompt, num_ctx, temperature, top_p, num_predict, API, API_TYPE, API_KEY, seed)
 
 _FINAL_PAT = re.compile(r'final\s*answer\s*:\s*(.*)', re.IGNORECASE)
 _BOLD_PAT = re.compile(r'^\*\*([^*]+)\*\*$')
@@ -407,6 +346,7 @@ def run(question):
             "round_complete",
             session_id=SESSION_ID,
             round=wave,
+            mode=MODE,
             majority_count=c,
             majority_total=t,
             referee_verdict=verdict,

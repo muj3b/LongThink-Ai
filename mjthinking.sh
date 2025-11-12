@@ -44,6 +44,8 @@ mkdir -p "$PROMPTS_DIR"
 PLUGINS_DIR="${PLUGINS_DIR:-$DIR/plugins}"
 mkdir -p "$PLUGINS_DIR"
 PROGRESS_UPDATE_INTERVAL="${PROGRESS_UPDATE_INTERVAL:-0}"
+EMA_ALPHA_VALUE="${EMA_ALPHA:-60}"
+
 
 format_duration() {
   local total=${1:-0}
@@ -64,6 +66,26 @@ progress_bar() {
   local width=${3:-20}
   if (( total <= 0 )); then total=1; fi
   local percent=$(( current * 100 / total ))
+  if (( percent > 100 )); then percent=100; fi
+  local filled=$(( percent * width / 100 ))
+  if (( filled > width )); then filled=$width; fi
+  local empty=$(( width - filled ))
+  printf '['
+  printf '#%.0s' $(seq 1 $filled)
+  printf '-%.0s' $(seq 1 $empty)
+  printf '] %3d%%' "$percent"
+}
+
+time_progress_bar() {
+  local elapsed=${1:-0}
+  local budget=${2:-0}
+  local width=${3:-28}
+  if (( budget <= 0 )); then
+    printf '[progress unavailable]'
+    return 0
+  fi
+  local percent=$(( elapsed * 100 / budget ))
+  if (( percent < 0 )); then percent=0; fi
   if (( percent > 100 )); then percent=100; fi
   local filled=$(( percent * width / 100 ))
   if (( filled > width )); then filled=$width; fi
@@ -898,7 +920,10 @@ PY
     if (( remaining_rounds > 0 && per_round > 0 )); then
       per_round_est=$per_round
       if (( HISTORY_MEAN_DURATION > 0 )); then
-        per_round_est=$(( (per_round_est + HISTORY_MEAN_DURATION) / 2 ))
+        alpha=$EMA_ALPHA_VALUE
+        if (( alpha < 0 )); then alpha=60; fi
+        if (( alpha > 100 )); then alpha=100; fi
+        per_round_est=$(( (alpha * per_round + (100 - alpha) * HISTORY_MEAN_DURATION) / 100 ))
         if (( per_round_est == 0 )); then per_round_est=$per_round; fi
       fi
       eta_seconds=$(( remaining_rounds * per_round_est ))
@@ -922,7 +947,12 @@ PY
     fi
   fi
   if (( should_print_progress )); then
-    echo "[progress] $bar | elapsed=$elapsed_str | eta~$eta_str"
+    if [[ -n "${TIME_BUDGET:-}" && "$TIME_BUDGET" -gt 0 ]]; then
+      tbar=$(time_progress_bar "$elapsed" "$TIME_BUDGET" 28)
+      echo "[progress] $tbar | rounds=$bar | elapsed=$elapsed_str | eta~$eta_str"
+    else
+      echo "[progress] $bar | elapsed=$elapsed_str | eta~$eta_str"
+    fi
   fi
 
   ROUND_TS=$(date +%s)
