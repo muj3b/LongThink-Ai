@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -387,5 +387,60 @@ def api_health() -> Dict[str, str]:
     return {"status": "ok"}
 
 
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: Dict[str, List[WebSocket]] = {}
+
+    async def connect(self, session_id: str, websocket: WebSocket):
+        await websocket.accept()
+        if session_id not in self.active_connections:
+            self.active_connections[session_id] = []
+        self.active_connections[session_id].append(websocket)
+
+    def disconnect(self, session_id: str, websocket: WebSocket):
+        if session_id in self.active_connections:
+            self.active_connections[session_id].remove(websocket)
+            if not self.active_connections[session_id]:
+                del self.active_connections[session_id]
+
+    async def broadcast(self, session_id: str, message: Dict[str, Any]):
+        if session_id in self.active_connections:
+            for connection in self.active_connections[session_id]:
+                try:
+                    await connection.send_json(message)
+                except Exception:
+                    pass
+
+manager = ConnectionManager()
+
+@app.websocket("/ws/{session_id}")
+async def websocket_endpoint(websocket: WebSocket, session_id: str):
+    await manager.connect(session_id, websocket)
+    try:
+        session = SessionInfo(session_id=session_id, path=RUNS_DIR / session_id)
+        # Send initial state
+        if session.path.exists():
+            events = list_events(session, limit=50)
+            await websocket.send_json({"type": "init", "events": events})
+        
+        # Poll for new events (simple implementation for now)
+        last_count = 0
+        while True:
+            if session.path.exists():
+                current_events = list_events(session, limit=1000) # Read more to catch up
+                if len(current_events) > last_count:
+                    new_events = current_events[last_count:]
+                    for event in new_events:
+                        await websocket.send_json({"type": "event", "data": event})
+                    last_count = len(current_events)
+            await asyncio.sleep(1)
+            
+    except WebSocketDisconnect:
+        manager.disconnect(session_id, websocket)
+    except Exception as e:
+        print(f"WebSocket error: {e}")
+        manager.disconnect(session_id, websocket)
+
 if __name__ == "__main__":
-    subprocess.run(["uvicorn", "mjthinking_api:app", "--reload"], cwd=str(BASE_DIR))
+    subprocess.run(["uvicorn", "mjthinking_api:app", "--reload", "--host", "0.0.0.0", "--port", "8000"], cwd=str(BASE_DIR))
