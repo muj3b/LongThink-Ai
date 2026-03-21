@@ -1,42 +1,123 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --radius: 0.5rem;
+    --background: 219 53% 8%;
+    --foreground: 210 33% 96%;
+    --card: 220 44% 11%;
+    --card-foreground: 210 33% 96%;
+    --popover: 220 44% 11%;
+    --popover-foreground: 210 33% 96%;
+    --primary: 186 100% 72%;
+    --primary-foreground: 221 39% 11%;
+    --secondary: 220 28% 18%;
+    --secondary-foreground: 210 33% 96%;
+    --muted: 219 28% 18%;
+    --muted-foreground: 217 18% 67%;
+    --accent: 39 96% 61%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 351 95% 71%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 218 25% 22%;
+    --input: 218 25% 22%;
+    --ring: 186 100% 72%;
+    --radius: 1rem;
   }
-}
 
-@layer base {
   * {
     @apply border-border;
   }
-  body {
-    @apply bg-background text-foreground;
+
+  html {
+    scroll-behavior: smooth;
   }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    background:
+      radial-gradient(circle at top left, rgba(34, 211, 238, 0.14), transparent 26%),
+      radial-gradient(circle at 90% 10%, rgba(245, 158, 11, 0.12), transparent 24%),
+      linear-gradient(180deg, #08111f 0%, #07101b 45%, #030712 100%);
+    min-height: 100vh;
+    font-family: 'Space Grotesk', sans-serif;
+  }
+
+  code,
+  pre,
+  .font-mono {
+    font-family: 'IBM Plex Mono', monospace;
+  }
+}
+
+@layer components {
+  .panel-shell {
+    @apply relative rounded-[32px] border border-white/10 bg-white/[0.04] p-6 shadow-[0_24px_80px_rgba(2,6,23,0.45)] backdrop-blur-xl;
+  }
+
+  .section-eyebrow {
+    @apply text-[11px] font-medium uppercase tracking-[0.32em] text-slate-500;
+  }
+
+  .section-title {
+    @apply mt-2 font-display text-2xl text-white;
+  }
+
+  .button-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-cyan-200/20 bg-cyan-300 px-5 py-3 text-sm font-medium text-slate-950 transition hover:scale-[1.01] hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .button-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-medium text-slate-100 transition hover:border-white/20 hover:bg-white/[0.09] disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .field-input {
+    @apply h-12 w-full rounded-full border border-white/10 bg-slate-950/70 px-4 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:ring-2 focus:ring-cyan-300/20;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: 'Space Grotesk', sans-serif;
+    letter-spacing: -0.04em;
+  }
+}
+
+.ambient-grid {
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: linear-gradient(180deg, rgba(255, 255, 255, 0.4), transparent 85%);
+}
+
+.ambient-orb {
+  position: fixed;
+  z-index: -2;
+  border-radius: 999px;
+  filter: blur(80px);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.ambient-orb-cyan {
+  top: 8%;
+  right: 8%;
+  width: 18rem;
+  height: 18rem;
+  background: rgba(34, 211, 238, 0.12);
+}
+
+.ambient-orb-amber {
+  bottom: 8%;
+  left: 10%;
+  width: 16rem;
+  height: 16rem;
+  background: rgba(245, 158, 11, 0.1);
 }

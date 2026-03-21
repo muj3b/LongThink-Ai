@@ -1,54 +1,47 @@
-import React, { useEffect, useState } from 'react';
-import { Brain } from 'lucide-react';
-
+import type { ReactNode } from 'react'
+import { BrainCircuit, Orbit, RadioTower } from 'lucide-react'
+import { apiBaseUrl } from '../lib/api'
 
 interface LayoutProps {
-    children: React.ReactNode;
+  children: ReactNode
+  isOnline: boolean
 }
 
-export function Layout({ children }: LayoutProps) {
-    const [isOnline, setIsOnline] = useState(false);
+export function Layout({ children, isOnline }: LayoutProps) {
+  return (
+    <div className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-slate-950">
+      <div className="ambient-grid" />
+      <div className="ambient-orb ambient-orb-cyan" />
+      <div className="ambient-orb ambient-orb-amber" />
 
-    useEffect(() => {
-        const checkHealth = () => {
-            fetch('http://localhost:8000/health')
-                .then(res => res.ok ? setIsOnline(true) : setIsOnline(false))
-                .catch(() => setIsOnline(false));
-        };
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-slate-950/75 backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-[1440px] items-center gap-6 px-5 py-4 sm:px-8">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-400/30 bg-cyan-400/10 shadow-[0_0_40px_rgba(34,211,238,0.18)]">
+              <BrainCircuit className="h-5 w-5 text-cyan-200" />
+            </div>
+            <div>
+              <p className="font-display text-lg tracking-[0.2em] text-white">LONGTHINK AI</p>
+              <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
+                Inference cockpit
+              </p>
+            </div>
+          </div>
 
-        checkHealth();
-        const interval = setInterval(checkHealth, 30000); // Check every 30s
-        return () => clearInterval(interval);
-    }, []);
-
-    return (
-        <div className="min-h-screen bg-background text-foreground font-sans selection:bg-accent selection:text-accent-foreground">
-            <div className="fixed inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black"></div>
-
-            {/* Header */}
-            <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                <div className="container flex h-14 max-w-screen-2xl items-center">
-                    <div className="mr-4 flex items-center space-x-2">
-                        <Brain className="h-6 w-6 text-chart-1" />
-                        <span className="hidden font-bold sm:inline-block">LongThink AI</span>
-                    </div>
-                    <nav className="flex items-center space-x-6 text-sm font-medium">
-                        <a href="#" className="transition-colors hover:text-foreground/80 text-foreground">Dashboard</a>
-                        <a href="#" className="transition-colors hover:text-foreground/80 text-foreground/60">Sessions</a>
-                        <a href="#" className="transition-colors hover:text-foreground/80 text-foreground/60">Settings</a>
-                    </nav>
-                    <div className="ml-auto flex items-center space-x-4">
-                        <div className="flex items-center space-x-1">
-                            <div className={`h-2 w-2 rounded-full ${isOnline ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-                            <span className="text-xs text-muted-foreground">{isOnline ? 'System Online' : 'Backend Offline'}</span>
-                        </div>
-                    </div>
-                </div>
-            </header>
-
-            <main className="container max-w-screen-2xl py-6">
-                {children}
-            </main>
+          <div className="ml-auto flex items-center gap-3">
+            <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300 md:flex">
+              <Orbit className="h-3.5 w-3.5 text-cyan-300" />
+              {apiBaseUrl}
+            </div>
+            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-medium uppercase tracking-[0.2em] text-slate-200">
+              <RadioTower className={`h-3.5 w-3.5 ${isOnline ? 'text-emerald-300' : 'text-rose-300'}`} />
+              {isOnline ? 'Backend online' : 'Backend offline'}
+            </div>
+          </div>
         </div>
-    );
+      </header>
+
+      <main className="mx-auto w-full max-w-[1440px] px-5 py-8 sm:px-8">{children}</main>
+    </div>
+  )
 }

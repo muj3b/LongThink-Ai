@@ -1,40 +1,72 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react'
+import { buildWebSocketUrl } from '../lib/api'
+import type { SessionEvent } from '../lib/types'
 
-export function useWebSocket(sessionId: string | null) {
-    const [events, setEvents] = useState<any[]>([]);
-    const [isConnected, setIsConnected] = useState(false);
-    const ws = useRef<WebSocket | null>(null);
+function normalizeEvent(payload: unknown): SessionEvent {
+  if (payload && typeof payload === 'object') {
+    return payload as SessionEvent
+  }
 
-    useEffect(() => {
-        if (!sessionId) return;
+  return { message: String(payload) }
+}
 
-        const socket = new WebSocket(`ws://localhost:8000/ws/${sessionId}`);
+export function useWebSocket(sessionId: string | null, initialEvents: SessionEvent[] = []) {
+  const [events, setEvents] = useState<SessionEvent[]>(initialEvents)
+  const [isConnected, setIsConnected] = useState(false)
+  const [connectionError, setConnectionError] = useState<string | null>(null)
+  const ws = useRef<WebSocket | null>(null)
 
-        socket.onopen = () => {
-            setIsConnected(true);
-            console.log('Connected to WebSocket');
-        };
+  useEffect(() => {
+    setEvents(initialEvents)
+  }, [initialEvents])
 
-        socket.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            if (data.type === 'init') {
-                setEvents(data.events);
-            } else if (data.type === 'event') {
-                setEvents((prev) => [...prev, data.data]);
-            }
-        };
+  const handleMessage = useEffectEvent((raw: MessageEvent<string>) => {
+    const payload = JSON.parse(raw.data) as {
+      type?: string
+      events?: unknown[]
+      data?: unknown
+    }
 
-        socket.onclose = () => {
-            setIsConnected(false);
-            console.log('Disconnected from WebSocket');
-        };
+    if (payload.type === 'init') {
+      setEvents((payload.events ?? []).map(normalizeEvent))
+      return
+    }
 
-        ws.current = socket;
+    if (payload.type === 'event') {
+      const nextEvent = normalizeEvent(payload.data)
+      setEvents((previous) => [...previous, nextEvent])
+    }
+  })
 
-        return () => {
-            socket.close();
-        };
-    }, [sessionId]);
+  useEffect(() => {
+    if (!sessionId) {
+      setIsConnected(false)
+      setConnectionError(null)
+      return
+    }
 
-    return { events, isConnected };
+    const socket = new WebSocket(buildWebSocketUrl(sessionId))
+    ws.current = socket
+    setConnectionError(null)
+
+    socket.onopen = () => {
+      setIsConnected(true)
+    }
+
+    socket.onmessage = handleMessage
+
+    socket.onerror = () => {
+      setConnectionError('Live stream unavailable')
+    }
+
+    socket.onclose = () => {
+      setIsConnected(false)
+    }
+
+    return () => {
+      socket.close()
+    }
+  }, [sessionId])
+
+  return { events, isConnected, connectionError }
 }
